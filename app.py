@@ -10,25 +10,79 @@ st.set_page_config(page_title="PCAD Risk Assessment", layout="wide")
 def local_css():
     st.markdown("""
     <style>
+    /* ---- SIDEBAR STYLES ---- */
+    [data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #1a1f36 0%, #16213e 100%);
+    }
+    [data-testid="stSidebar"] * { color: #e0e6f0 !important; }
+
+    .sidebar-user-card {
+        background: rgba(255,255,255,0.08);
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 8px;
+        text-align: center;
+    }
+    .sidebar-avatar {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #ff4b4b, #ff9a9e);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        margin: 0 auto 10px auto;
+        box-shadow: 0 4px 12px rgba(255,75,75,0.4);
+    }
+    .sidebar-username {
+        font-weight: 700;
+        font-size: 15px;
+        color: #ffffff !important;
+        margin: 0;
+    }
+    .sidebar-role {
+        font-size: 11px;
+        color: #9aafc7 !important;
+        margin: 2px 0 0 0;
+    }
+    .sidebar-divider {
+        border: none;
+        border-top: 1px solid rgba(255,255,255,0.1);
+        margin: 12px 0;
+    }
+    .nav-label {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        color: #6b82a6 !important;
+        text-transform: uppercase;
+        padding: 4px 0 8px 0;
+    }
+
+    /* ---- MAIN PAGE STYLES ---- */
     .patient-banner {
-        background-color: #f0f2f6;
-        padding: 20px;
-        border-radius: 10px;
+        background: linear-gradient(135deg, #f0f4ff 0%, #e8f0fe 100%);
+        padding: 20px 24px;
+        border-radius: 12px;
         display: flex;
         justify-content: space-between;
         align-items: center;
         margin-bottom: 20px;
+        border: 1px solid #d0dcf5;
     }
     .heartbeat-icon { font-size: 30px; color: #ff4b4b; }
-    .banner-item label { font-size: 12px; color: #666; display: block; }
-    .banner-item span { font-weight: bold; font-size: 18px; }
-    
+    .banner-item label { font-size: 11px; color: #666; display: block; text-transform: uppercase; letter-spacing: 0.5px; }
+    .banner-item span { font-weight: bold; font-size: 18px; color: #1a1f36; }
+
     .risk-card {
         background: white;
         padding: 30px;
         border-radius: 15px;
         text-align: center;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        border: 1px solid #f0f0f0;
     }
     .donut-outer {
         margin: 20px auto;
@@ -52,7 +106,7 @@ def local_css():
     }
     .risk-score-text { font-size: 32px; font-weight: bold; }
     .risk-label-box { padding: 10px; border-radius: 8px; font-weight: bold; margin-top: 10px; }
-    
+
     .bio-card {
         background: #f9f9f9;
         padding: 15px;
@@ -68,48 +122,225 @@ def local_css():
     .disclaimer-box {
         background-color: #fff3cd;
         padding: 15px;
-        border-radius: 5px;
+        border-radius: 8px;
         font-size: 13px;
         margin-top: 20px;
+        border-left: 4px solid #ffc107;
+    }
+
+    /* ---- DASHBOARD / MAIN MENU STYLES ---- */
+    .dash-metric-card {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        text-align: center;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        border: 1px solid #f0f0f0;
+        transition: transform 0.2s;
+    }
+    .dash-metric-card:hover { transform: translateY(-2px); }
+    .dash-metric-icon { font-size: 36px; margin-bottom: 8px; }
+    .dash-metric-value { font-size: 28px; font-weight: 800; color: #1a1f36; }
+    .dash-metric-label { font-size: 13px; color: #888; margin-top: 4px; }
+
+    .info-card {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        border: 1px solid #f0f0f0;
+        margin-bottom: 16px;
+    }
+    .info-card h4 { margin: 0 0 8px 0; color: #1a1f36; }
+    .info-card p { margin: 0; font-size: 14px; color: #555; line-height: 1.6; }
+
+    /* ---- PATIENT LIST STYLES ---- */
+    .db-status-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    .db-connected { background: #d4edda; color: #155724; }
+    .db-disconnected { background: #f8d7da; color: #721c24; }
+
+    /* Hide default streamlit elements in sidebar nav */
+    div[data-testid="stSidebarUserContent"] .stButton button {
+        width: 100%;
+        text-align: left;
+        background: transparent;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 14px;
+        font-size: 14px;
+        font-weight: 500;
+        color: #c8d6ea !important;
+        transition: background 0.2s;
+        cursor: pointer;
+    }
+    div[data-testid="stSidebarUserContent"] .stButton button:hover {
+        background: rgba(255,255,255,0.1) !important;
+        color: #ffffff !important;
     }
     </style>
     """, unsafe_allow_html=True)
 
+
 @st.cache_resource
 def load_assets():
-    # Load your original files
     try:
         model = joblib.load('pcad_model.pkl')
         preprocessor = joblib.load('preprocessor.pkl')
         return model, preprocessor
     except:
-        st.error("Model or Preprocessor files not found!")
         return None, None
 
 model, preprocessor = load_assets()
 
 # --- 2. SESSION STATE MANAGEMENT ---
 if 'page' not in st.session_state:
-    st.session_state.page = 'form'
+    st.session_state.page = 'main_menu'
 if 'patient_data' not in st.session_state:
     st.session_state.patient_data = {}
 if 'risk_result' not in st.session_state:
     st.session_state.risk_result = {}
-
-def go_to_result(): st.session_state.page = 'result'
-def go_to_form(): st.session_state.page = 'form'
+# Simulated logged-in user (replace with real auth as needed)
+if 'logged_in_user' not in st.session_state:
+    st.session_state.logged_in_user = {'name': 'Dr. Ahmad Faris', 'role': 'Cardiologist'}
 
 local_css()
 
-# --- 3. PAGE 1: INPUT FORM ---
-if st.session_state.page == 'form':
-    st.title("Sistem Prediksi Risiko PCAD")
-    st.write("Sila masukkan data pesakit untuk klasifikasi risiko.")
+# --- 3. SIDEBAR ---
+with st.sidebar:
+    user = st.session_state.logged_in_user
+    initials = "".join([w[0].upper() for w in user['name'].split()[:2]])
+
+    # User Card
+    st.markdown(f"""
+        <div class="sidebar-user-card">
+            <div class="sidebar-avatar">{initials}</div>
+            <p class="sidebar-username">{user['name']}</p>
+            <p class="sidebar-role">{user['role']}</p>
+        </div>
+    """, unsafe_allow_html=True)
+
+    # Logout Button
+    if st.button("🔓  Log Out", key="logout_btn", use_container_width=True):
+        st.session_state.page = 'main_menu'
+        st.session_state.patient_data = {}
+        st.session_state.risk_result = {}
+        st.rerun()
+
+    st.markdown('<hr class="sidebar-divider">', unsafe_allow_html=True)
+    st.markdown('<div class="nav-label">Navigation</div>', unsafe_allow_html=True)
+
+    # Nav Buttons
+    nav_items = [
+        ("🏠  Main Menu",        "main_menu"),
+        ("🫀  Predict PCAD",     "form"),
+        ("🗃️  Patient Data List", "patient_list"),
+    ]
+    for label, page_key in nav_items:
+        is_active = st.session_state.page == page_key
+        btn_label = f"**{label}**" if is_active else label
+        if st.button(btn_label, key=f"nav_{page_key}", use_container_width=True):
+            st.session_state.page = page_key
+            st.rerun()
+
+    st.markdown('<hr class="sidebar-divider">', unsafe_allow_html=True)
+    st.markdown('<div style="font-size:11px; color:#4a637a; text-align:center;">PCAD Risk System v2.0</div>', unsafe_allow_html=True)
+
+
+# ─────────────────────────────────────────────
+# PAGE: MAIN MENU (Dashboard Info)
+# ─────────────────────────────────────────────
+if st.session_state.page == 'main_menu':
+    st.markdown("## 🏠 Main Menu — Dashboard")
+    st.markdown("Welcome back, **{}**. Here's an overview of the PCAD Risk Assessment System.".format(
+        st.session_state.logged_in_user['name']))
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # Summary Metrics
+    m1, m2, m3, m4 = st.columns(4)
+    metrics = [
+        ("🫀", "3", "Total Biomarkers Tracked"),
+        ("📋", "11", "Input Parameters"),
+        ("⚠️", "3", "Risk Categories"),
+        ("🏥", "MySQL", "Patient DB Backend"),
+    ]
+    for col, (icon, val, label) in zip([m1, m2, m3, m4], metrics):
+        with col:
+            st.markdown(f"""
+                <div class="dash-metric-card">
+                    <div class="dash-metric-icon">{icon}</div>
+                    <div class="dash-metric-value">{val}</div>
+                    <div class="dash-metric-label">{label}</div>
+                </div>
+            """, unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("### 📌 About This System")
+
+    col_a, col_b = st.columns(2)
+    with col_a:
+        st.markdown("""
+            <div class="info-card">
+                <h4>🎯 Purpose</h4>
+                <p>This system predicts the risk level of Premature Coronary Artery Disease (PCAD) 
+                using patient biomarkers and clinical data. It leverages a trained machine learning 
+                model to classify patients into Low, Medium, or High risk categories.</p>
+            </div>
+        """, unsafe_allow_html=True)
+        st.markdown("""
+            <div class="info-card">
+                <h4>🔬 Key Biomarkers Assessed</h4>
+                <p><b>CRP</b> — C-Reactive Protein (inflammation marker)<br>
+                <b>IL-6</b> — Interleukin-6 (cytokine inflammatory marker)<br>
+                <b>VCAM-1</b> — Vascular Cell Adhesion Molecule<br>
+                <b>Glutathione</b> — Antioxidant stress indicator</p>
+            </div>
+        """, unsafe_allow_html=True)
+
+    with col_b:
+        st.markdown("""
+            <div class="info-card">
+                <h4>📊 Risk Classification</h4>
+                <p>
+                <span style="color:#28a745; font-weight:700;">● LOW RISK</span> — Score ~15: Biomarkers within healthy range.<br><br>
+                <span style="color:#ffa500; font-weight:700;">● MEDIUM RISK</span> — Score ~50: Some biomarkers elevated; lifestyle changes advised.<br><br>
+                <span style="color:#ff4b4b; font-weight:700;">● HIGH RISK</span> — Score ~85: Multiple markers elevated; urgent cardiology consult recommended.
+                </p>
+            </div>
+        """, unsafe_allow_html=True)
+        st.markdown("""
+            <div class="info-card">
+                <h4>🚀 Quick Actions</h4>
+                <p>Use the sidebar to navigate between pages:</p>
+                <p>→ <b>Predict PCAD</b> to enter new patient data<br>
+                → <b>Patient Data List</b> to browse records from the database</p>
+            </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown("""
+        <div class="disclaimer-box">
+            <b>⚕️ Medical Disclaimer:</b> This system is a clinical decision-support tool only. 
+            All risk predictions must be reviewed and confirmed by a qualified cardiologist before 
+            any clinical action is taken.
+        </div>
+    """, unsafe_allow_html=True)
+
+
+# ─────────────────────────────────────────────
+# PAGE: PREDICT PCAD (Patient Data Entry)
+# ─────────────────────────────────────────────
+elif st.session_state.page == 'form':
+    st.markdown("## 🫀 Predict PCAD — Patient Data Entry")
+    st.write("Enter the patient's clinical data below to generate a risk classification.")
 
     with st.form("prediction_form"):
-        # Added Patient Name
         name = st.text_input("Patient Full Name", value="John Doe")
-        
+
         col1, col2 = st.columns(2)
         with col1:
             age = st.number_input("Age", min_value=1, max_value=120, value=50)
@@ -118,7 +349,6 @@ if st.session_state.page == 'form':
             smoking = st.selectbox("Smoking Status", options=[1, 0], format_func=lambda x: "Smoker" if x == 1 else "Non-Smoker")
             crp = st.number_input("CRP Level (mg/L)", value=3.0)
             il6 = st.number_input("IL-6 Level (pg/mL)", value=5.0)
-
         with col2:
             vcam = st.number_input("VCAM-1 Level (ng/mL)", value=600.0)
             glutathione = st.number_input("Glutathione (mmol/L)", value=8.0)
@@ -126,60 +356,53 @@ if st.session_state.page == 'form':
             renal = st.number_input("Renal Profile", value=1.0)
             liver = st.number_input("Liver Profile", value=35.0)
 
-        submit = st.form_submit_button("Predict Risk Level", use_container_width=True)
+        submit = st.form_submit_button("Predict Risk Level", use_container_width=True, type="primary")
 
     if submit:
-        # Prepare Data for Prediction
-        input_data = pd.DataFrame([[age, bmi, gender, smoking, crp, il6, vcam, glutathione, lipid, renal, liver]], 
-                            columns=['Age', 'BMI','Gender', 'Smoking_Status', 'CRP', 'IL_6', 'VCAM_1', 'Glutathione', 'Lipid_Profile', 'Renal_Profile', 'Liver_Profile'])
-        
-        # Original Prediction Logic
-        data_scaled = preprocessor.transform(input_data)
-        prediction = model.predict(data_scaled)[0]
-        
-        # Map Prediction to Visuals
-        # Adjust mapping logic based on your specific model labels (0,1,2 or Low, Medium, High)
+        input_data = pd.DataFrame(
+            [[age, bmi, gender, smoking, crp, il6, vcam, glutathione, lipid, renal, liver]],
+            columns=['Age', 'BMI', 'Gender', 'Smoking_Status', 'CRP', 'IL_6',
+                     'VCAM_1', 'Glutathione', 'Lipid_Profile', 'Renal_Profile', 'Liver_Profile']
+        )
+
+        if model is not None and preprocessor is not None:
+            data_scaled = preprocessor.transform(input_data)
+            prediction = model.predict(data_scaled)[0]
+        else:
+            # Demo fallback when model files are missing
+            st.warning("⚠️ Model files not found. Showing demo result.")
+            prediction = 'High'
+
         res_map = {
-            'High':   {'label': 'HIGH RISK', 'color': '#ff4b4b', 'degree': '300deg', 'score': 85},
-            2:        {'label': 'HIGH RISK', 'color': '#ff4b4b', 'degree': '300deg', 'score': 85},
+            'High':   {'label': 'HIGH RISK',   'color': '#ff4b4b', 'degree': '300deg', 'score': 85},
+            2:        {'label': 'HIGH RISK',   'color': '#ff4b4b', 'degree': '300deg', 'score': 85},
             'Medium': {'label': 'MEDIUM RISK', 'color': '#ffa500', 'degree': '180deg', 'score': 50},
             1:        {'label': 'MEDIUM RISK', 'color': '#ffa500', 'degree': '180deg', 'score': 50},
-            'Low':    {'label': 'LOW RISK', 'color': '#28a745', 'degree': '60deg', 'score': 15},
-            0:        {'label': 'LOW RISK', 'color': '#28a745', 'degree': '60deg', 'score': 15}
+            'Low':    {'label': 'LOW RISK',    'color': '#28a745', 'degree': '60deg',  'score': 15},
+            0:        {'label': 'LOW RISK',    'color': '#28a745', 'degree': '60deg',  'score': 15},
         }
-        
-        # Store data for the Dashboard page
+
         st.session_state.patient_data = {
-            'name': name, 'age': age, 'bmi': bmi, 
+            'name': name, 'age': age, 'bmi': bmi,
             'smoking': "Smoker" if smoking == 1 else "Non-Smoker",
             'crp': crp, 'il6': il6, 'vcam': vcam, 'glutathione': glutathione
         }
         st.session_state.risk_result = res_map.get(prediction, res_map['Low'])
-        
-        go_to_result()
+        st.session_state.page = 'result'
         st.rerun()
 
-# --- 4. PAGE 2: RESULT DASHBOARD ---
+
+# ─────────────────────────────────────────────
+# PAGE: RESULT DASHBOARD
+# ─────────────────────────────────────────────
 elif st.session_state.page == 'result':
     data = st.session_state.patient_data
-    res = st.session_state.risk_result
+    res  = st.session_state.risk_result
 
-    # Navigation Header
-    col_nav1, col_nav2, col_nav3 = st.columns([1, 8, 1])
-    with col_nav1:
-        if st.button("← Back"):
-            go_to_form()
-            st.rerun()
-    with col_nav2:
-        st.markdown("<h3 style='text-align: center; margin:0;'>❤️ CAD Risk Assessment Results</h3>", unsafe_allow_html=True)
-    with col_nav3:
-        if st.button("Log Out"):
-            st.session_state.page = 'form' # Reset
-            st.rerun()
-
+    st.markdown("## ❤️ CAD Risk Assessment Results")
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # 2. Patient Banner
+    # Patient Banner
     st.markdown(f"""
         <div class="patient-banner">
             <div class="heartbeat-icon">∿</div>
@@ -190,7 +413,6 @@ elif st.session_state.page == 'result':
         </div>
     """, unsafe_allow_html=True)
 
-    # 3. Main Dashboard Layout
     left_col, right_col = st.columns([1, 2])
 
     with left_col:
@@ -211,42 +433,176 @@ elif st.session_state.page == 'result':
 
     with right_col:
         st.markdown('<h6>🕒 BIOMARKER ANALYSIS</h6>', unsafe_allow_html=True)
-        
+
         def get_bio_html(label, value, unit, threshold, is_reverse=False):
             is_bad = (value < threshold) if is_reverse else (value > threshold)
-            status_text = "High" if is_bad else "Normal"
+            status_text  = "High"   if is_bad else "Normal"
             status_class = "status-high" if is_bad else "status-normal"
-            
             desc = "Levels are within range."
-            if label == "CRP" and is_bad: desc = "Indicates systemic inflammation."
-            elif label == "VCAM-1" and is_bad: desc = "Endothelial dysfunction detected."
+            if label == "CRP"        and is_bad: desc = "Indicates systemic inflammation."
+            elif label == "VCAM-1"   and is_bad: desc = "Endothelial dysfunction detected."
             elif label == "Glutathione" and is_bad: desc = "Depleted antioxidants increase stress."
             elif not is_bad: desc = "Within healthy clinical range."
-            
             return f"""
                 <div class="bio-card">
                     <div class="bio-title">{label}</div>
                     <div class="bio-value">{value} <span style="font-size:12px; color:#888;">{unit}</span></div>
                     <div class="bio-desc">{desc}</div>
-                    <div class="bio-status {status_class}">{status_text}</div>
+                    <div class="{status_class}">{status_text}</div>
                 </div>
             """
 
-        row1_1, row1_2 = st.columns(2)
-        with row1_1: st.markdown(get_bio_html("CRP", data['crp'], "mg/L", 3.0), unsafe_allow_html=True)
-        with row1_2: st.markdown(get_bio_html("IL-6", data['il6'], "pg/mL", 5.0), unsafe_allow_html=True)
-        
-        row2_1, row2_2 = st.columns(2)
-        with row2_1: st.markdown(get_bio_html("VCAM-1", data['vcam'], "ng/mL", 500), unsafe_allow_html=True)
-        with row2_2: st.markdown(get_bio_html("Glutathione", data['glutathione'], "mmol/L", 4.0, is_reverse=True), unsafe_allow_html=True)
+        r1a, r1b = st.columns(2)
+        with r1a: st.markdown(get_bio_html("CRP",    data['crp'],         "mg/L",   3.0),          unsafe_allow_html=True)
+        with r1b: st.markdown(get_bio_html("IL-6",   data['il6'],         "pg/mL",  5.0),          unsafe_allow_html=True)
+        r2a, r2b = st.columns(2)
+        with r2a: st.markdown(get_bio_html("VCAM-1", data['vcam'],        "ng/mL",  500),          unsafe_allow_html=True)
+        with r2b: st.markdown(get_bio_html("Glutathione", data['glutathione'], "mmol/L", 4.0, True), unsafe_allow_html=True)
 
     st.markdown("""
         <div class="disclaimer-box">
-            <b>Medical Disclaimer:</b> This assessment is for informational purposes only. 
+            <b>⚕️ Medical Disclaimer:</b> This assessment is for informational purposes only.
             It should not replace professional medical diagnosis. Please consult with a cardiologist.
         </div>
     """, unsafe_allow_html=True)
-    
-    if st.button("Update Patient Data", type="primary", use_container_width=True):
-        go_to_form()
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    if st.button("🔄 Update Patient Data", type="primary", use_container_width=True):
+        st.session_state.page = 'form'
         st.rerun()
+
+
+# ─────────────────────────────────────────────
+# PAGE: PATIENT DATA LIST (MySQL)
+# ─────────────────────────────────────────────
+elif st.session_state.page == 'patient_list':
+    st.markdown("## 🗃️ Patient Data List")
+    st.markdown("Patient records loaded from the MySQL database.")
+
+    # ── MySQL Connection ──────────────────────────────────────────────────────
+    # Install driver:  pip install mysql-connector-python
+    # Fill in your actual credentials below.
+    DB_CONFIG = {
+        "host":     "localhost",       # e.g. "127.0.0.1" or your remote host
+        "port":     3306,
+        "database": "pcad_db",         # your database name
+        "user":     "root",            # your MySQL username
+        "password": "your_password",   # your MySQL password
+    }
+
+    @st.cache_data(ttl=60)            # refresh cache every 60 s
+    def fetch_patients():
+        """
+        Returns a DataFrame of all patient records.
+        Adjust the query / column names to match your actual table schema.
+        """
+        import mysql.connector
+        conn = mysql.connector.connect(**DB_CONFIG)
+        query = """
+            SELECT
+                patient_id   AS `ID`,
+                full_name    AS `Name`,
+                age          AS `Age`,
+                gender       AS `Gender`,
+                bmi          AS `BMI`,
+                smoking      AS `Smoking`,
+                crp          AS `CRP`,
+                il6          AS `IL-6`,
+                vcam1        AS `VCAM-1`,
+                glutathione  AS `Glutathione`,
+                risk_label   AS `Risk Level`,
+                created_at   AS `Date`
+            FROM patients
+            ORDER BY created_at DESC
+        """
+        df = pd.read_sql(query, conn)
+        conn.close()
+        return df
+
+    # ── UI ────────────────────────────────────────────────────────────────────
+    try:
+        import mysql.connector
+        driver_available = True
+    except ImportError:
+        driver_available = False
+
+    col_status, col_refresh = st.columns([4, 1])
+
+    with col_status:
+        if driver_available:
+            st.markdown('<span class="db-status-badge db-connected">● MySQL Driver Installed</span>', unsafe_allow_html=True)
+        else:
+            st.markdown('<span class="db-status-badge db-disconnected">● mysql-connector-python not installed</span>', unsafe_allow_html=True)
+            st.info("Run `pip install mysql-connector-python` and restart the app.")
+
+    with col_refresh:
+        if st.button("🔄 Refresh", use_container_width=True):
+            st.cache_data.clear()
+            st.rerun()
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    if driver_available:
+        try:
+            df_patients = fetch_patients()
+
+            if df_patients.empty:
+                st.info("No patient records found in the database.")
+            else:
+                # ── Search / Filter Bar ──────────────────────────────────────
+                col_search, col_filter = st.columns([3, 1])
+                with col_search:
+                    search_term = st.text_input("🔍 Search by patient name", placeholder="Type a name…")
+                with col_filter:
+                    risk_filter = st.selectbox("Filter by Risk Level", ["All", "LOW RISK", "MEDIUM RISK", "HIGH RISK"])
+
+                filtered = df_patients.copy()
+                if search_term:
+                    filtered = filtered[filtered["Name"].str.contains(search_term, case=False, na=False)]
+                if risk_filter != "All":
+                    filtered = filtered[filtered["Risk Level"] == risk_filter]
+
+                st.markdown(f"**{len(filtered)} record(s) found**")
+
+                # ── Colour-code Risk Level column ────────────────────────────
+                def colour_risk(val):
+                    colour_map = {
+                        "HIGH RISK":   "background-color:#ffe0e0; color:#c0392b; font-weight:600",
+                        "MEDIUM RISK": "background-color:#fff3e0; color:#e67e22; font-weight:600",
+                        "LOW RISK":    "background-color:#e8f8f0; color:#27ae60; font-weight:600",
+                    }
+                    return colour_map.get(str(val).upper(), "")
+
+                styled = filtered.style.applymap(colour_risk, subset=["Risk Level"])
+                st.dataframe(styled, use_container_width=True, hide_index=True)
+
+                # ── Download as CSV ──────────────────────────────────────────
+                csv_data = filtered.to_csv(index=False).encode("utf-8")
+                st.download_button(
+                    label="⬇️ Download as CSV",
+                    data=csv_data,
+                    file_name="pcad_patients.csv",
+                    mime="text/csv",
+                )
+
+        except Exception as e:
+            st.error(f"❌ Could not connect to MySQL database.\n\n**Error:** `{e}`")
+            st.markdown("""
+                **Troubleshooting checklist:**
+                - Is MySQL running and reachable from this machine?
+                - Are the credentials in `DB_CONFIG` correct?
+                - Does the `pcad_db` database and `patients` table exist?
+                - Is port 3306 open / not blocked by a firewall?
+            """)
+    else:
+        st.markdown("""
+            <div class="info-card">
+                <h4>🔌 MySQL Integration Setup</h4>
+                <p>
+                1. Install the driver: <code>pip install mysql-connector-python</code><br>
+                2. Edit the <code>DB_CONFIG</code> dictionary in this file with your host, port, database name, username, and password.<br>
+                3. Make sure your <code>patients</code> table has the expected columns (see the SQL query in the code).<br>
+                4. Restart the Streamlit app.
+                </p>
+            </div>
+        """, unsafe_allow_html=True)
