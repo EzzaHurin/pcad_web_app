@@ -516,17 +516,53 @@ elif st.session_state.page == 'result':
                 shap_values = explainer.shap_values(st.session_state.shap_scaled)
                 raw_vals    = st.session_state.shap_input.values[0]
 
-                # For multi-class models shap_values is a list of arrays (one per class)
-                # Pick the class that was predicted
-                pred_label = res.get('label', 'LOW RISK')
+                pred_label    = res.get('label', 'LOW RISK')
                 class_idx_map = {'LOW RISK': 0, 'MEDIUM RISK': 1, 'HIGH RISK': 2}
-                class_idx = class_idx_map.get(pred_label, 0)
+                class_idx     = class_idx_map.get(pred_label, 0)
 
-                if isinstance(shap_values, list):
-                    sv = shap_values[class_idx][0]   # shape: (n_features,)
-                else:
-                    # Binary or regression — use the single array
-                    sv = shap_values[0]
+                # Robustly extract a 1-D SHAP vector for this patient + predicted class.
+                # Different model types / shap versions produce different array shapes:
+#   list of arrays, each (n_samples, n_features)  -> old-style multiclass TreeExplainer
+#   ndarray (n_classes, n_samples, n_features)    -> stacked multiclass
+#   ndarray (n_samples, n_features, n_classes)    -> newer shap
+#   ndarray (n_samples, n_features)               -> binary / regression
+                # --- Robust SHAP extraction ---
+                # Convert everything to a flat list of numpy arrays first,
+                # then pick the right class and sample.
+                def extract_sv(shap_vals, cidx):
+                    # Case 1: list (one array per class) — classic TreeExplainer multiclass
+                    if isinstance(shap_vals, list):
+                        arr = np.array(shap_vals)  # -> (n_classes, n_samples, n_features)
+                        if arr.ndim == 3:
+                            return arr[cidx, 0, :].astype(float)
+                        # fallback: each element might already be 1-D
+                        return np.array(shap_vals[cidx]).flatten().astype(float)
+                    # Case 2: single ndarray
+                    arr = np.array(shap_vals)
+                    if arr.ndim == 3:
+                        # (n_classes, n_samples, n_features)
+                        if arr.shape[0] == len(class_idx_map):
+                            return arr[cidx, 0, :].astype(float)
+                        # (n_samples, n_features, n_classes)
+                        if arr.shape[2] == len(class_idx_map):
+                            return arr[0, :, cidx].astype(float)
+                        return arr[0, 0, :].astype(float)
+                    if arr.ndim == 2:   # (n_samples, n_features)
+                        return arr[0, :].astype(float)
+                    return arr.flatten().astype(float)
+
+                sv = extract_sv(shap_values, class_idx)
+
+                # Debug expander — remove once confirmed working
+                with st.expander('🛠 Debug: SHAP raw info', expanded=False):
+                    st.write('Type:', type(shap_values))
+                    if isinstance(shap_values, list):
+                        st.write('List length:', len(shap_values))
+                        st.write('Element 0 shape:', np.array(shap_values[0]).shape)
+                    else:
+                        st.write('Array shape:', np.array(shap_values).shape)
+                    st.write('Extracted sv shape:', sv.shape)
+                    st.write('class_idx used:', class_idx, '|', pred_label)
 
                 # ── Tab layout ───────────────────────────────────────────────
                 tab1, tab2, tab3 = st.tabs(["📊 Waterfall Chart", "📈 Bar Chart", "📋 Feature Table"])
