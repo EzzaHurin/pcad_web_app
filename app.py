@@ -2,7 +2,14 @@ import streamlit as st
 import pandas as pd
 import joblib
 import numpy as np
-
+import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+ 
+try:
+    import shap
+    SHAP_AVAILABLE = True
+except ImportError:
+    SHAP_AVAILABLE = False
 # --- 1. CONFIG & ASSETS ---
 st.set_page_config(page_title="PCAD Risk Assessment", layout="wide")
 
