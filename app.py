@@ -4,12 +4,13 @@ import joblib
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
- 
+
 try:
     import shap
     SHAP_AVAILABLE = True
 except ImportError:
     SHAP_AVAILABLE = False
+
 # --- 1. CONFIG & ASSETS ---
 st.set_page_config(page_title="PCAD Risk Assessment", layout="wide")
 
@@ -212,6 +213,10 @@ if 'patient_data' not in st.session_state:
     st.session_state.patient_data = {}
 if 'risk_result' not in st.session_state:
     st.session_state.risk_result = {}
+if 'shap_input' not in st.session_state:
+    st.session_state.shap_input = None      # raw (unscaled) DataFrame row
+if 'shap_scaled' not in st.session_state:
+    st.session_state.shap_scaled = None     # preprocessed array row
 # Simulated logged-in user (replace with real auth as needed)
 if 'logged_in_user' not in st.session_state:
     st.session_state.logged_in_user = {'name': 'Dr. Ahmad Faris', 'role': 'Cardiologist'}
@@ -375,6 +380,8 @@ elif st.session_state.page == 'form':
         if model is not None and preprocessor is not None:
             data_scaled = preprocessor.transform(input_data)
             prediction = model.predict(data_scaled)[0]
+            st.session_state.shap_input  = input_data
+            st.session_state.shap_scaled = data_scaled
         else:
             # Demo fallback when model files are missing
             st.warning("⚠️ Model files not found. Showing demo result.")
@@ -473,32 +480,28 @@ elif st.session_state.page == 'result':
         </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("<br>", unsafe_allow_html=True)
-    if st.button("🔄 Update Patient Data", type="primary", use_container_width=True):
-        st.session_state.page = 'form'
-        st.rerun()
- # ── SHAP ANALYSIS SECTION ─────────────────────────────────────────────────
+    # ── SHAP ANALYSIS SECTION ─────────────────────────────────────────────────
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("---")
     st.markdown("### 🔍 AI Explanation — Why This Risk Level?")
     st.markdown("SHAP (SHapley Additive exPlanations) shows **which features pushed the prediction** toward or away from the predicted risk class.")
- 
+
     if not SHAP_AVAILABLE:
         st.warning("⚠️ SHAP library not installed. Run `pip install shap` and restart.")
- 
+
     elif model is None or preprocessor is None:
         st.info("ℹ️ SHAP analysis requires the trained model files (`pcad_model.pkl` and `preprocessor.pkl`).")
- 
+
     elif st.session_state.shap_scaled is None:
         st.info("ℹ️ Submit patient data first to see the SHAP explanation.")
- 
+
     else:
         feature_names = [
             'Age', 'BMI', 'Gender', 'Smoking Status',
             'CRP', 'IL-6', 'VCAM-1', 'Glutathione',
             'Lipid Profile', 'Renal Profile', 'Liver Profile'
         ]
- 
+
         @st.cache_resource
         def get_shap_explainer(_mdl):
             """Cache the explainer — creating it is expensive."""
@@ -506,40 +509,40 @@ elif st.session_state.page == 'result':
                 return shap.TreeExplainer(_mdl)
             except Exception:
                 return shap.Explainer(_mdl)
- 
+
         with st.spinner("Calculating SHAP values…"):
             try:
                 explainer   = get_shap_explainer(model)
                 shap_values = explainer.shap_values(st.session_state.shap_scaled)
                 raw_vals    = st.session_state.shap_input.values[0]
- 
+
                 # For multi-class models shap_values is a list of arrays (one per class)
                 # Pick the class that was predicted
                 pred_label = res.get('label', 'LOW RISK')
                 class_idx_map = {'LOW RISK': 0, 'MEDIUM RISK': 1, 'HIGH RISK': 2}
                 class_idx = class_idx_map.get(pred_label, 0)
- 
+
                 if isinstance(shap_values, list):
                     sv = shap_values[class_idx][0]   # shape: (n_features,)
                 else:
                     # Binary or regression — use the single array
                     sv = shap_values[0]
- 
+
                 # ── Tab layout ───────────────────────────────────────────────
                 tab1, tab2, tab3 = st.tabs(["📊 Waterfall Chart", "📈 Bar Chart", "📋 Feature Table"])
- 
+
                 # ── TAB 1: Waterfall (manual matplotlib) ─────────────────────
                 with tab1:
                     st.markdown("**Waterfall chart** — each bar shows how much a feature increased (🔴) or decreased (🔵) the risk score from the baseline.")
- 
+
                     sorted_idx  = np.argsort(np.abs(sv))[::-1]   # most important first
                     top_n       = min(11, len(sorted_idx))
                     idx_top     = sorted_idx[:top_n][::-1]        # bottom-to-top for horizontal bar
- 
+
                     feat_labels = [f"{feature_names[i]}\n= {raw_vals[i]:.2f}" for i in idx_top]
                     values      = sv[idx_top]
                     colors      = ['#ff4b4b' if v > 0 else '#4b8bff' for v in values]
- 
+
                     fig_wf, ax_wf = plt.subplots(figsize=(9, 5))
                     bars = ax_wf.barh(range(len(values)), values, color=colors, edgecolor='white', height=0.6)
                     ax_wf.set_yticks(range(len(values)))
@@ -547,30 +550,30 @@ elif st.session_state.page == 'result':
                     ax_wf.axvline(0, color='black', linewidth=0.8)
                     ax_wf.set_xlabel("SHAP Value (impact on model output)", fontsize=10)
                     ax_wf.set_title(f"Feature Contributions — {pred_label}", fontsize=12, fontweight='bold', pad=12)
- 
+
                     # Value labels on bars
                     for bar, val in zip(bars, values):
                         offset = 0.003 if val >= 0 else -0.003
                         ha     = 'left' if val >= 0 else 'right'
                         ax_wf.text(val + offset, bar.get_y() + bar.get_height() / 2,
                                    f"{val:+.3f}", va='center', ha=ha, fontsize=8)
- 
+
                     red_patch  = mpatches.Patch(color='#ff4b4b', label='Increases risk')
                     blue_patch = mpatches.Patch(color='#4b8bff', label='Decreases risk')
                     ax_wf.legend(handles=[red_patch, blue_patch], loc='lower right', fontsize=9)
                     fig_wf.tight_layout()
                     st.pyplot(fig_wf)
                     plt.close(fig_wf)
- 
+
                 # ── TAB 2: Bar chart (mean absolute) ─────────────────────────
                 with tab2:
                     st.markdown("**Bar chart** — absolute SHAP value per feature; longer bar = more influential.")
- 
+
                     abs_sv      = np.abs(sv)
                     sorted_abs  = np.argsort(abs_sv)   # ascending for horizontal bar
                     feat_bar    = [feature_names[i] for i in sorted_abs]
                     vals_bar    = abs_sv[sorted_abs]
- 
+
                     fig_bar, ax_bar = plt.subplots(figsize=(9, 5))
                     bar_colors  = plt.cm.RdYlGn_r(np.linspace(0.2, 0.8, len(vals_bar)))
                     ax_bar.barh(range(len(vals_bar)), vals_bar, color=bar_colors, edgecolor='white', height=0.6)
@@ -583,11 +586,11 @@ elif st.session_state.page == 'result':
                     fig_bar.tight_layout()
                     st.pyplot(fig_bar)
                     plt.close(fig_bar)
- 
+
                 # ── TAB 3: Detailed Table ─────────────────────────────────────
                 with tab3:
                     st.markdown("**Detailed breakdown** — SHAP value, direction, and patient value for each feature.")
- 
+
                     shap_df = pd.DataFrame({
                         'Feature':       feature_names,
                         'Patient Value': [f"{v:.2f}" for v in raw_vals],
@@ -595,28 +598,28 @@ elif st.session_state.page == 'result':
                         'Direction':     ['⬆ Increases Risk' if v > 0 else '⬇ Decreases Risk' for v in sv],
                         '|Impact|':      [round(abs(float(v)), 4) for v in sv],
                     }).sort_values('|Impact|', ascending=False).reset_index(drop=True)
- 
+
                     def highlight_direction(val):
                         if '⬆' in str(val): return 'color: #c0392b; font-weight: 600'
                         if '⬇' in str(val): return 'color: #27ae60; font-weight: 600'
                         return ''
- 
+
                     styled_shap = shap_df.style.applymap(highlight_direction, subset=['Direction'])
                     st.dataframe(styled_shap, use_container_width=True, hide_index=True)
- 
+
                     # Download
                     csv_shap = shap_df.to_csv(index=False).encode('utf-8')
                     st.download_button("⬇️ Download SHAP Table", csv_shap, "shap_analysis.csv", "text/csv")
- 
+
             except Exception as e:
                 st.error(f"❌ SHAP calculation failed: `{e}`")
                 st.markdown("This can happen if the model type isn't directly supported by `TreeExplainer`. Try using `shap.Explainer(model)` instead.")
- 
+
     st.markdown("<br>", unsafe_allow_html=True)
     if st.button("🔄 Update Patient Data", type="primary", use_container_width=True):
         st.session_state.page = 'form'
         st.rerun()
- 
+
 
 # ─────────────────────────────────────────────
 # PAGE: PATIENT DATA LIST (MySQL)
