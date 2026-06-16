@@ -623,7 +623,7 @@ elif st.session_state.page == 'result':
                             if 'Down' in str(val): return 'color: #27ae60; font-weight: 600'
                             return ''
 
-                        styled_shap = shap_df.style.applymap(highlight_direction, subset=['Direction'])
+                        styled_shap = shap_df.style.map(highlight_direction, subset=['Direction'])
                         st.dataframe(styled_shap, use_container_width=True, hide_index=True)
                         csv_shap = shap_df.to_csv(index=False).encode('utf-8')
                         st.download_button("Download SHAP Table", csv_shap, "shap_analysis.csv", "text/csv")
