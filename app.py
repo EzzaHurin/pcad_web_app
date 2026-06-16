@@ -504,290 +504,129 @@ elif st.session_state.page == 'result':
 
         @st.cache_resource
         def get_shap_explainer(_mdl):
-            """Cache the explainer — creating it is expensive."""
             try:
-                return shap.TreeExplainer(_mdl)
+                return shap.TreeExplainer(_mdl), "tree"
             except Exception:
-                return shap.Explainer(_mdl)
+                try:
+                    return shap.Explainer(_mdl), "generic"
+                except Exception as e:
+                    return None, str(e)
 
-        with st.spinner("Calculating SHAP values…"):
+        with st.spinner("Calculating SHAP values..."):
             try:
-                explainer   = get_shap_explainer(model)
-                shap_values = explainer.shap_values(st.session_state.shap_scaled)
-                raw_vals    = st.session_state.shap_input.values[0]
+                explainer, exp_type = get_shap_explainer(model)
 
-                pred_label    = res.get('label', 'LOW RISK')
-                class_idx_map = {'LOW RISK': 0, 'MEDIUM RISK': 1, 'HIGH RISK': 2}
-                class_idx     = class_idx_map.get(pred_label, 0)
+                if explainer is None:
+                    st.warning(f"Could not build SHAP explainer: {exp_type}")
+                else:
+                    raw_vals      = st.session_state.shap_input.values[0]
+                    pred_label    = res.get("label", "LOW RISK")
+                    class_idx_map = {"LOW RISK": 0, "MEDIUM RISK": 1, "HIGH RISK": 2}
+                    class_idx     = class_idx_map.get(pred_label, 0)
+                    n_classes     = len(class_idx_map)
 
-                # Robustly extract a 1-D SHAP vector for this patient + predicted class.
-                # Different model types / shap versions produce different array shapes:
-#   list of arrays, each (n_samples, n_features)  -> old-style multiclass TreeExplainer
-#   ndarray (n_classes, n_samples, n_features)    -> stacked multiclass
-#   ndarray (n_samples, n_features, n_classes)    -> newer shap
-#   ndarray (n_samples, n_features)               -> binary / regression
-                # --- Robust SHAP extraction ---
-                # Convert everything to a flat list of numpy arrays first,
-                # then pick the right class and sample.
-                def extract_sv(shap_vals, cidx):
-                    # Case 1: list (one array per class) — classic TreeExplainer multiclass
-                    if isinstance(shap_vals, list):
-                        arr = np.array(shap_vals)  # -> (n_classes, n_samples, n_features)
-                        if arr.ndim == 3:
-                            return arr[cidx, 0, :].astype(float)
-                        # fallback: each element might already be 1-D
-                        return np.array(shap_vals[cidx]).flatten().astype(float)
-                    # Case 2: single ndarray
-                    arr = np.array(shap_vals)
-                    if arr.ndim == 3:
-                        # (n_classes, n_samples, n_features)
-                        if arr.shape[0] == len(class_idx_map):
-                            return arr[cidx, 0, :].astype(float)
-                        # (n_samples, n_features, n_classes)
-                        if arr.shape[2] == len(class_idx_map):
-                            return arr[0, :, cidx].astype(float)
-                        return arr[0, 0, :].astype(float)
-                    if arr.ndim == 2:   # (n_samples, n_features)
-                        return arr[0, :].astype(float)
-                    return arr.flatten().astype(float)
-
-                sv = extract_sv(shap_values, class_idx)
-
-                # Debug expander — remove once confirmed working
-                with st.expander('🛠 Debug: SHAP raw info', expanded=False):
-                    st.write('Type:', type(shap_values))
-                    if isinstance(shap_values, list):
-                        st.write('List length:', len(shap_values))
-                        st.write('Element 0 shape:', np.array(shap_values[0]).shape)
+                    if exp_type == "tree":
+                        raw_shap = explainer.shap_values(st.session_state.shap_scaled)
                     else:
-                        st.write('Array shape:', np.array(shap_values).shape)
-                    st.write('Extracted sv shape:', sv.shape)
-                    st.write('class_idx used:', class_idx, '|', pred_label)
+                        exp_obj  = explainer(st.session_state.shap_scaled)
+                        raw_shap = exp_obj.values
+
+                    # normalise to 1-D float array for the predicted class
+                    if isinstance(raw_shap, list):
+                        elem = np.array(raw_shap[class_idx], dtype=float)
+                        sv   = elem.flatten() if elem.ndim == 1 else elem[0]
+                    else:
+                        arr = np.array(raw_shap, dtype=float)
+                        if arr.ndim == 1:
+                            sv = arr
+                        elif arr.ndim == 2:
+                            sv = arr[0]
+                        elif arr.ndim == 3:
+                            if arr.shape[0] == n_classes:
+                                sv = arr[class_idx, 0, :]
+                            elif arr.shape[2] == n_classes:
+                                sv = arr[0, :, class_idx]
+                            else:
+                                sv = arr[0, 0, :]
+                        else:
+                            sv = arr.flatten()
+
+                    sv = sv.astype(float)
 
                 # ── Tab layout ───────────────────────────────────────────────
-                tab1, tab2, tab3 = st.tabs(["📊 Waterfall Chart", "📈 Bar Chart", "📋 Feature Table"])
+                    tab1, tab2, tab3 = st.tabs(["Waterfall Chart", "Bar Chart", "Feature Table"])
 
-                # ── TAB 1: Waterfall (manual matplotlib) ─────────────────────
-                with tab1:
-                    st.markdown("**Waterfall chart** — each bar shows how much a feature increased (🔴) or decreased (🔵) the risk score from the baseline.")
+                    # TAB 1: Waterfall
+                    with tab1:
+                        st.markdown("**Waterfall chart** — each bar shows how much a feature increased (red) or decreased (blue) the risk score.")
 
-                    sorted_idx  = np.argsort(np.abs(sv))[::-1]   # most important first
-                    top_n       = min(11, len(sorted_idx))
-                    idx_top     = sorted_idx[:top_n][::-1]        # bottom-to-top for horizontal bar
+                        sorted_idx  = np.argsort(np.abs(sv))[::-1]
+                        top_n       = min(11, len(sorted_idx))
+                        idx_top     = sorted_idx[:top_n][::-1]
 
-                    feat_labels = [f"{feature_names[i]}\n= {raw_vals[i]:.2f}" for i in idx_top]
-                    values      = sv[idx_top]
-                    colors      = ['#ff4b4b' if v > 0 else '#4b8bff' for v in values]
+                        feat_labels = [f"{feature_names[i]}\n= {raw_vals[i]:.2f}" for i in idx_top]
+                        values      = sv[idx_top]
+                        colors      = ['#ff4b4b' if v > 0 else '#4b8bff' for v in values]
 
-                    fig_wf, ax_wf = plt.subplots(figsize=(9, 5))
-                    bars = ax_wf.barh(range(len(values)), values, color=colors, edgecolor='white', height=0.6)
-                    ax_wf.set_yticks(range(len(values)))
-                    ax_wf.set_yticklabels(feat_labels, fontsize=9)
-                    ax_wf.axvline(0, color='black', linewidth=0.8)
-                    ax_wf.set_xlabel("SHAP Value (impact on model output)", fontsize=10)
-                    ax_wf.set_title(f"Feature Contributions — {pred_label}", fontsize=12, fontweight='bold', pad=12)
+                        fig_wf, ax_wf = plt.subplots(figsize=(9, 5))
+                        bars = ax_wf.barh(range(len(values)), values, color=colors, edgecolor='white', height=0.6)
+                        ax_wf.set_yticks(range(len(values)))
+                        ax_wf.set_yticklabels(feat_labels, fontsize=9)
+                        ax_wf.axvline(0, color='black', linewidth=0.8)
+                        ax_wf.set_xlabel("SHAP Value (impact on model output)", fontsize=10)
+                        ax_wf.set_title(f"Feature Contributions - {pred_label}", fontsize=12, fontweight='bold', pad=12)
+                        for bar, val in zip(bars, values):
+                            offset = 0.003 if val >= 0 else -0.003
+                            ha     = 'left' if val >= 0 else 'right'
+                            ax_wf.text(val + offset, bar.get_y() + bar.get_height() / 2,
+                                       f"{val:+.3f}", va='center', ha=ha, fontsize=8)
+                        red_patch  = mpatches.Patch(color='#ff4b4b', label='Increases risk')
+                        blue_patch = mpatches.Patch(color='#4b8bff', label='Decreases risk')
+                        ax_wf.legend(handles=[red_patch, blue_patch], loc='lower right', fontsize=9)
+                        fig_wf.tight_layout()
+                        st.pyplot(fig_wf)
+                        plt.close(fig_wf)
 
-                    # Value labels on bars
-                    for bar, val in zip(bars, values):
-                        offset = 0.003 if val >= 0 else -0.003
-                        ha     = 'left' if val >= 0 else 'right'
-                        ax_wf.text(val + offset, bar.get_y() + bar.get_height() / 2,
-                                   f"{val:+.3f}", va='center', ha=ha, fontsize=8)
+                    # TAB 2: Bar chart
+                    with tab2:
+                        st.markdown("**Bar chart** — absolute SHAP value per feature; longer bar = more influential.")
+                        abs_sv     = np.abs(sv)
+                        sorted_abs = np.argsort(abs_sv)
+                        feat_bar   = [feature_names[i] for i in sorted_abs]
+                        vals_bar   = abs_sv[sorted_abs]
+                        fig_bar, ax_bar = plt.subplots(figsize=(9, 5))
+                        bar_colors = plt.cm.RdYlGn_r(np.linspace(0.2, 0.8, len(vals_bar)))
+                        ax_bar.barh(range(len(vals_bar)), vals_bar, color=bar_colors, edgecolor='white', height=0.6)
+                        ax_bar.set_yticks(range(len(vals_bar)))
+                        ax_bar.set_yticklabels(feat_bar, fontsize=10)
+                        ax_bar.set_xlabel("Mean |SHAP Value|", fontsize=10)
+                        ax_bar.set_title("Feature Importance (SHAP)", fontsize=12, fontweight='bold', pad=12)
+                        for i, v in enumerate(vals_bar):
+                            ax_bar.text(v + 0.001, i, f"{v:.3f}", va='center', fontsize=8)
+                        fig_bar.tight_layout()
+                        st.pyplot(fig_bar)
+                        plt.close(fig_bar)
 
-                    red_patch  = mpatches.Patch(color='#ff4b4b', label='Increases risk')
-                    blue_patch = mpatches.Patch(color='#4b8bff', label='Decreases risk')
-                    ax_wf.legend(handles=[red_patch, blue_patch], loc='lower right', fontsize=9)
-                    fig_wf.tight_layout()
-                    st.pyplot(fig_wf)
-                    plt.close(fig_wf)
+                    # TAB 3: Table
+                    with tab3:
+                        st.markdown("**Detailed breakdown** of SHAP values per feature.")
+                        shap_df = pd.DataFrame({
+                            'Feature':       feature_names,
+                            'Patient Value': [f"{v:.2f}" for v in raw_vals],
+                            'SHAP Value':    [round(float(v), 4) for v in sv],
+                            'Direction':     ['Up - Increases Risk' if v > 0 else 'Down - Decreases Risk' for v in sv],
+                            '|Impact|':      [round(abs(float(v)), 4) for v in sv],
+                        }).sort_values('|Impact|', ascending=False).reset_index(drop=True)
 
-                # ── TAB 2: Bar chart (mean absolute) ─────────────────────────
-                with tab2:
-                    st.markdown("**Bar chart** — absolute SHAP value per feature; longer bar = more influential.")
+                        def highlight_direction(val):
+                            if 'Up' in str(val):   return 'color: #c0392b; font-weight: 600'
+                            if 'Down' in str(val): return 'color: #27ae60; font-weight: 600'
+                            return ''
 
-                    abs_sv      = np.abs(sv)
-                    sorted_abs  = np.argsort(abs_sv)   # ascending for horizontal bar
-                    feat_bar    = [feature_names[i] for i in sorted_abs]
-                    vals_bar    = abs_sv[sorted_abs]
-
-                    fig_bar, ax_bar = plt.subplots(figsize=(9, 5))
-                    bar_colors  = plt.cm.RdYlGn_r(np.linspace(0.2, 0.8, len(vals_bar)))
-                    ax_bar.barh(range(len(vals_bar)), vals_bar, color=bar_colors, edgecolor='white', height=0.6)
-                    ax_bar.set_yticks(range(len(vals_bar)))
-                    ax_bar.set_yticklabels(feat_bar, fontsize=10)
-                    ax_bar.set_xlabel("Mean |SHAP Value|", fontsize=10)
-                    ax_bar.set_title("Feature Importance (SHAP)", fontsize=12, fontweight='bold', pad=12)
-                    for i, v in enumerate(vals_bar):
-                        ax_bar.text(v + 0.001, i, f"{v:.3f}", va='center', fontsize=8)
-                    fig_bar.tight_layout()
-                    st.pyplot(fig_bar)
-                    plt.close(fig_bar)
-
-                # ── TAB 3: Detailed Table ─────────────────────────────────────
-                with tab3:
-                    st.markdown("**Detailed breakdown** — SHAP value, direction, and patient value for each feature.")
-
-                    shap_df = pd.DataFrame({
-                        'Feature':       feature_names,
-                        'Patient Value': [f"{v:.2f}" for v in raw_vals],
-                        'SHAP Value':    [round(float(v), 4) for v in sv],
-                        'Direction':     ['⬆ Increases Risk' if v > 0 else '⬇ Decreases Risk' for v in sv],
-                        '|Impact|':      [round(abs(float(v)), 4) for v in sv],
-                    }).sort_values('|Impact|', ascending=False).reset_index(drop=True)
-
-                    def highlight_direction(val):
-                        if '⬆' in str(val): return 'color: #c0392b; font-weight: 600'
-                        if '⬇' in str(val): return 'color: #27ae60; font-weight: 600'
-                        return ''
-
-                    styled_shap = shap_df.style.applymap(highlight_direction, subset=['Direction'])
-                    st.dataframe(styled_shap, use_container_width=True, hide_index=True)
-
-                    # Download
-                    csv_shap = shap_df.to_csv(index=False).encode('utf-8')
-                    st.download_button("⬇️ Download SHAP Table", csv_shap, "shap_analysis.csv", "text/csv")
+                        styled_shap = shap_df.style.applymap(highlight_direction, subset=['Direction'])
+                        st.dataframe(styled_shap, use_container_width=True, hide_index=True)
+                        csv_shap = shap_df.to_csv(index=False).encode('utf-8')
+                        st.download_button("Download SHAP Table", csv_shap, "shap_analysis.csv", "text/csv")
 
             except Exception as e:
-                st.error(f"❌ SHAP calculation failed: `{e}`")
-                st.markdown("This can happen if the model type isn't directly supported by `TreeExplainer`. Try using `shap.Explainer(model)` instead.")
-
-    st.markdown("<br>", unsafe_allow_html=True)
-    if st.button("🔄 Update Patient Data", type="primary", use_container_width=True):
-        st.session_state.page = 'form'
-        st.rerun()
-
-
-# ─────────────────────────────────────────────
-# PAGE: PATIENT DATA LIST (MySQL)
-# ─────────────────────────────────────────────
-elif st.session_state.page == 'patient_list':
-    st.markdown("## 🗃️ Patient Data List")
-    st.markdown("Patient records loaded from the MySQL database.")
-
-    # ── MySQL Connection ──────────────────────────────────────────────────────
-    # Install driver:  pip install mysql-connector-python
-    # Fill in your actual credentials below.
-    DB_CONFIG = {
-        "host":     "localhost",       # e.g. "127.0.0.1" or your remote host
-        "port":     3306,
-        "database": "pcad_db",         # your database name
-        "user":     "root",            # your MySQL username
-        "password": "your_password",   # your MySQL password
-    }
-
-    @st.cache_data(ttl=60)            # refresh cache every 60 s
-    def fetch_patients():
-        """
-        Returns a DataFrame of all patient records.
-        Adjust the query / column names to match your actual table schema.
-        """
-        import mysql.connector
-        conn = mysql.connector.connect(**DB_CONFIG)
-        query = """
-            SELECT
-                patient_id   AS `ID`,
-                full_name    AS `Name`,
-                age          AS `Age`,
-                gender       AS `Gender`,
-                bmi          AS `BMI`,
-                smoking      AS `Smoking`,
-                crp          AS `CRP`,
-                il6          AS `IL-6`,
-                vcam1        AS `VCAM-1`,
-                glutathione  AS `Glutathione`,
-                risk_label   AS `Risk Level`,
-                created_at   AS `Date`
-            FROM patients
-            ORDER BY created_at DESC
-        """
-        df = pd.read_sql(query, conn)
-        conn.close()
-        return df
-
-    # ── UI ────────────────────────────────────────────────────────────────────
-    try:
-        import mysql.connector
-        driver_available = True
-    except ImportError:
-        driver_available = False
-
-    col_status, col_refresh = st.columns([4, 1])
-
-    with col_status:
-        if driver_available:
-            st.markdown('<span class="db-status-badge db-connected">● MySQL Driver Installed</span>', unsafe_allow_html=True)
-        else:
-            st.markdown('<span class="db-status-badge db-disconnected">● mysql-connector-python not installed</span>', unsafe_allow_html=True)
-            st.info("Run `pip install mysql-connector-python` and restart the app.")
-
-    with col_refresh:
-        if st.button("🔄 Refresh", use_container_width=True):
-            st.cache_data.clear()
-            st.rerun()
-
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    if driver_available:
-        try:
-            df_patients = fetch_patients()
-
-            if df_patients.empty:
-                st.info("No patient records found in the database.")
-            else:
-                # ── Search / Filter Bar ──────────────────────────────────────
-                col_search, col_filter = st.columns([3, 1])
-                with col_search:
-                    search_term = st.text_input("🔍 Search by patient name", placeholder="Type a name…")
-                with col_filter:
-                    risk_filter = st.selectbox("Filter by Risk Level", ["All", "LOW RISK", "MEDIUM RISK", "HIGH RISK"])
-
-                filtered = df_patients.copy()
-                if search_term:
-                    filtered = filtered[filtered["Name"].str.contains(search_term, case=False, na=False)]
-                if risk_filter != "All":
-                    filtered = filtered[filtered["Risk Level"] == risk_filter]
-
-                st.markdown(f"**{len(filtered)} record(s) found**")
-
-                # ── Colour-code Risk Level column ────────────────────────────
-                def colour_risk(val):
-                    colour_map = {
-                        "HIGH RISK":   "background-color:#ffe0e0; color:#c0392b; font-weight:600",
-                        "MEDIUM RISK": "background-color:#fff3e0; color:#e67e22; font-weight:600",
-                        "LOW RISK":    "background-color:#e8f8f0; color:#27ae60; font-weight:600",
-                    }
-                    return colour_map.get(str(val).upper(), "")
-
-                styled = filtered.style.applymap(colour_risk, subset=["Risk Level"])
-                st.dataframe(styled, use_container_width=True, hide_index=True)
-
-                # ── Download as CSV ──────────────────────────────────────────
-                csv_data = filtered.to_csv(index=False).encode("utf-8")
-                st.download_button(
-                    label="⬇️ Download as CSV",
-                    data=csv_data,
-                    file_name="pcad_patients.csv",
-                    mime="text/csv",
-                )
-
-        except Exception as e:
-            st.error(f"❌ Could not connect to MySQL database.\n\n**Error:** `{e}`")
-            st.markdown("""
-                **Troubleshooting checklist:**
-                - Is MySQL running and reachable from this machine?
-                - Are the credentials in `DB_CONFIG` correct?
-                - Does the `pcad_db` database and `patients` table exist?
-                - Is port 3306 open / not blocked by a firewall?
-            """)
-    else:
-        st.markdown("""
-            <div class="info-card">
-                <h4>🔌 MySQL Integration Setup</h4>
-                <p>
-                1. Install the driver: <code>pip install mysql-connector-python</code><br>
-                2. Edit the <code>DB_CONFIG</code> dictionary in this file with your host, port, database name, username, and password.<br>
-                3. Make sure your <code>patients</code> table has the expected columns (see the SQL query in the code).<br>
-                4. Restart the Streamlit app.
-                </p>
-            </div>
-        """, unsafe_allow_html=True)
+                st.error(f"SHAP calculation failed: `{e}`")
