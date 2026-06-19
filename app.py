@@ -630,3 +630,152 @@ elif st.session_state.page == 'result':
 
             except Exception as e:
                 st.error(f"SHAP calculation failed: `{e}`")
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    if st.button("🔄 Update Patient Data", type="primary", use_container_width=True):
+        st.session_state.page = 'form'
+        st.rerun()
+
+
+# ─────────────────────────────────────────────
+# PAGE: PATIENT DATA LIST (MySQL)
+# ─────────────────────────────────────────────
+elif st.session_state.page == 'patient_list':
+    st.markdown("## 🗃️ Patient Data List")
+    st.markdown("Patient records loaded from the MySQL database.")
+
+    # ── MySQL Connection (credentials pulled from Streamlit Secrets) ──────────
+    # Set these in: Streamlit Cloud → App → Settings → Secrets
+    # (or locally in .streamlit/secrets.toml)
+    #
+    #   db_host     = "your_host"
+    #   db_port     = 3306
+    #   db_name     = "pcad_db"
+    #   db_user     = "root"
+    #   db_password = "your_actual_password"
+    #
+    DB_CONFIG = {
+        "host":     st.secrets["db_host"],
+        "port":     st.secrets["db_port"],
+        "database": st.secrets["db_name"],
+        "user":     st.secrets["db_user"],
+        "password": st.secrets["db_password"],
+    }
+
+    @st.cache_data(ttl=60)            # refresh cache every 60 s
+    def fetch_patients():
+        """
+        Returns a DataFrame of all patient records.
+        Adjust the query / column names to match your actual table schema.
+        """
+        import mysql.connector
+        conn = mysql.connector.connect(**DB_CONFIG)
+        query = """
+            SELECT
+                patient_id   AS `ID`,
+                full_name    AS `Name`,
+                age          AS `Age`,
+                gender       AS `Gender`,
+                bmi          AS `BMI`,
+                smoking      AS `Smoking`,
+                crp          AS `CRP`,
+                il6          AS `IL-6`,
+                vcam1        AS `VCAM-1`,
+                glutathione  AS `Glutathione`,
+                risk_label   AS `Risk Level`,
+                created_at   AS `Date`
+            FROM patients
+            ORDER BY created_at DESC
+        """
+        df = pd.read_sql(query, conn)
+        conn.close()
+        return df
+
+    # ── UI ────────────────────────────────────────────────────────────────────
+    try:
+        import mysql.connector
+        driver_available = True
+    except ImportError:
+        driver_available = False
+
+    col_status, col_refresh = st.columns([4, 1])
+
+    with col_status:
+        if driver_available:
+            st.markdown('<span class="db-status-badge db-connected">● MySQL Driver Installed</span>', unsafe_allow_html=True)
+        else:
+            st.markdown('<span class="db-status-badge db-disconnected">● mysql-connector-python not installed</span>', unsafe_allow_html=True)
+            st.info("Run `pip install mysql-connector-python` and restart the app.")
+
+    with col_refresh:
+        if st.button("🔄 Refresh", use_container_width=True):
+            st.cache_data.clear()
+            st.rerun()
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    if driver_available:
+        try:
+            df_patients = fetch_patients()
+
+            if df_patients.empty:
+                st.info("No patient records found in the database.")
+            else:
+                # ── Search / Filter Bar ──────────────────────────────────────
+                col_search, col_filter = st.columns([3, 1])
+                with col_search:
+                    search_term = st.text_input("🔍 Search by patient name", placeholder="Type a name…")
+                with col_filter:
+                    risk_filter = st.selectbox("Filter by Risk Level", ["All", "LOW RISK", "MEDIUM RISK", "HIGH RISK"])
+
+                filtered = df_patients.copy()
+                if search_term:
+                    filtered = filtered[filtered["Name"].str.contains(search_term, case=False, na=False)]
+                if risk_filter != "All":
+                    filtered = filtered[filtered["Risk Level"] == risk_filter]
+
+                st.markdown(f"**{len(filtered)} record(s) found**")
+
+                # ── Colour-code Risk Level column ────────────────────────────
+                def colour_risk(val):
+                    colour_map = {
+                        "HIGH RISK":   "background-color:#ffe0e0; color:#c0392b; font-weight:600",
+                        "MEDIUM RISK": "background-color:#fff3e0; color:#e67e22; font-weight:600",
+                        "LOW RISK":    "background-color:#e8f8f0; color:#27ae60; font-weight:600",
+                    }
+                    return colour_map.get(str(val).upper(), "")
+
+                styled = filtered.style.map(colour_risk, subset=["Risk Level"])
+                st.dataframe(styled, use_container_width=True, hide_index=True)
+
+                # ── Download as CSV ──────────────────────────────────────────
+                csv_data = filtered.to_csv(index=False).encode("utf-8")
+                st.download_button(
+                    label="⬇️ Download as CSV",
+                    data=csv_data,
+                    file_name="pcad_patients.csv",
+                    mime="text/csv",
+                )
+
+        except Exception as e:
+            st.error(f"❌ Could not connect to MySQL database.\n\n**Error:** `{e}`")
+            st.markdown("""
+                **Troubleshooting checklist:**
+                - Is MySQL running and reachable from this machine?
+                - Are the credentials in Streamlit Secrets correct?
+                - Does the `pcad_db` database and `patients` table exist?
+                - Is port 3306 open / not blocked by a firewall?
+            """)
+    else:
+        st.markdown("""
+            <div class="info-card">
+                <h4>🔌 MySQL Integration Setup</h4>
+                <p>
+                1. Install the driver: <code>pip install mysql-connector-python</code><br>
+                2. Add your credentials to Streamlit Secrets (Settings → Secrets):<br>
+                <code>db_host, db_port, db_name, db_user, db_password</code><br>
+                3. Make sure your <code>patients</code> table has the expected columns (see the SQL query in the code).<br>
+                4. Restart the Streamlit app.
+                </p>
+            </div>
+        """, unsafe_allow_html=True)
