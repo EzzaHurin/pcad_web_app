@@ -672,20 +672,24 @@ elif st.session_state.page == 'patient_list':
         conn = mysql.connector.connect(**DB_CONFIG)
         query = """
             SELECT
-                patient_id   AS `ID`,
-                full_name    AS `Name`,
-                age          AS `Age`,
-                gender       AS `Gender`,
-                bmi          AS `BMI`,
-                smoking      AS `Smoking`,
-                crp          AS `CRP`,
-                il6          AS `IL-6`,
-                vcam1        AS `VCAM-1`,
-                glutathione  AS `Glutathione`,
-                risk_label   AS `Risk Level`,
-                created_at   AS `Date`
-            FROM patients
-            ORDER BY created_at DESC
+    					p.id_pesakit AS `ID`,
+    					p.nama_pesakit AS `Name`,
+    					p.umur AS `Age`,
+    					p.jantina AS `Gender`,
+   					rk.bmi AS `BMI`,
+    					rk.status_merokok AS `Smoking`,
+    					rk.crp_level AS `CRP`,
+    					rk.il6_level AS `IL-6`,
+   				 	rk.vcam1_level AS `VCAM-1`,
+    					rk.glutathione AS `Glutathione`,
+    					la.keputusan_risiko AS `Risk Level`,
+   					rk.tarikh_analisis AS `Date`
+	FROM pesakit p
+	INNER JOIN rekod_kesihatan rk
+    				ON p.id_pesakit = rk.id_pesakit
+	INNER JOIN laporan_analisis la
+    				ON rk.id_rekod = la.id_rekod
+	ORDER BY rk.tarikh_analisis DESC
         """
         df = pd.read_sql(query, conn)
         conn.close()
