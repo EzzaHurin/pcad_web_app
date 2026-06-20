@@ -683,7 +683,7 @@ elif st.session_state.page == 'patient_list':
    				 	rk.vcam1_level AS `VCAM-1`,
     					rk.glutathione AS `Glutathione`,
     					la.keputusan_risiko AS `Risk Level`,
-   					rk.tarikh_analisis AS `Date`
+   					rk.tarikh_rekod AS `Date`
 	FROM pesakit p
 	INNER JOIN rekod_kesihatan rk
     				ON p.id_pesakit = rk.id_pesakit
