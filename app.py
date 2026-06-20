@@ -689,7 +689,7 @@ elif st.session_state.page == 'patient_list':
     				ON p.id_pesakit = rk.id_pesakit
 	INNER JOIN laporan_analisis la
     				ON rk.id_rekod = la.id_rekod
-	ORDER BY rk.tarikh_analisis DESC
+	ORDER BY rk.tarikh_rekod DESC
         """
         df = pd.read_sql(query, conn)
         conn.close()
