@@ -292,6 +292,135 @@ if st.session_state.page == 'main_menu':
             """, unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("---")
+    st.markdown("### 📊 Patient Data Dashboard")
+
+    # ── Load data: try fixed path first, fallback to upload ───────────────────
+    # Path is relative to this script's location, so it works both locally
+    # and when deployed from GitHub (e.g. Streamlit Cloud).
+    import os
+    APP_DIR = os.path.dirname(os.path.abspath(__file__))
+    DEFAULT_DATA_PATH = os.path.join(APP_DIR, "patients.csv")
+
+    @st.cache_data(ttl=300)
+    def load_dashboard_data(path):
+        return pd.read_csv(path)
+
+    dashboard_df = None
+    try:
+        dashboard_df = load_dashboard_data(DEFAULT_DATA_PATH)
+        st.caption(f"📁 Data loaded from `data/patients.csv` — {len(dashboard_df)} records")
+    except FileNotFoundError:
+        st.info("No file found at `data/patients.csv` in the repo. Upload a CSV/Excel file below to populate the dashboard.")
+        uploaded = st.file_uploader("Upload patient data (CSV or Excel)", type=["csv", "xlsx"])
+        if uploaded is not None:
+            if uploaded.name.endswith(".csv"):
+                dashboard_df = pd.read_csv(uploaded)
+            else:
+                dashboard_df = pd.read_excel(uploaded)
+
+    if dashboard_df is not None and not dashboard_df.empty:
+        df = dashboard_df.copy()
+
+        # ── Expected columns (adjust names to match your actual file) ────────
+        # Risk_Level, Age, Gender, Smoking_Status, CRP, IL_6, VCAM_1, Glutathione
+
+        # --- Row 1: Quick stat cards from real data ---
+        st.markdown("#### Overview")
+        s1, s2, s3, s4 = st.columns(4)
+        with s1:
+            st.metric("Total Patients", len(df))
+        with s2:
+            if "Age" in df.columns:
+                st.metric("Average Age", f"{df['Age'].mean():.1f} yrs")
+        with s3:
+            if "Risk_Level" in df.columns:
+                high_pct = (df["Risk_Level"].astype(str).str.upper().str.contains("HIGH")).mean() * 100
+                st.metric("High Risk %", f"{high_pct:.1f}%")
+        with s4:
+            if "Smoking_Status" in df.columns:
+                smoker_pct = (df["Smoking_Status"].astype(str).str.upper().str.contains("SMOK") |
+                              (df["Smoking_Status"] == 1)).mean() * 100
+                st.metric("Smokers %", f"{smoker_pct:.1f}%")
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        # --- Row 2: Risk distribution + Demographics ---
+        col_chart1, col_chart2 = st.columns(2)
+
+        with col_chart1:
+            st.markdown("**Risk Level Distribution**")
+            if "Risk_Level" in df.columns:
+                risk_counts = df["Risk_Level"].value_counts()
+                fig1, ax1 = plt.subplots(figsize=(5, 4))
+                colors_map = {"Low": "#28a745", "Medium": "#ffa500", "High": "#ff4b4b",
+                              "LOW": "#28a745", "MEDIUM": "#ffa500", "HIGH": "#ff4b4b",
+                              "LOW RISK": "#28a745", "MEDIUM RISK": "#ffa500", "HIGH RISK": "#ff4b4b"}
+                bar_colors = [colors_map.get(str(x), "#888888") for x in risk_counts.index]
+                ax1.bar(risk_counts.index.astype(str), risk_counts.values, color=bar_colors, edgecolor='white')
+                ax1.set_ylabel("Number of Patients")
+                ax1.set_title("Patients by Risk Category", fontsize=11, fontweight='bold')
+                for i, v in enumerate(risk_counts.values):
+                    ax1.text(i, v + 0.3, str(v), ha='center', fontsize=9, fontweight='bold')
+                fig1.tight_layout()
+                st.pyplot(fig1)
+                plt.close(fig1)
+            else:
+                st.caption("Column 'Risk_Level' not found in data.")
+
+        with col_chart2:
+            st.markdown("**Age Distribution**")
+            if "Age" in df.columns:
+                fig2, ax2 = plt.subplots(figsize=(5, 4))
+                ax2.hist(df["Age"].dropna(), bins=10, color="#4b8bff", edgecolor='white')
+                ax2.set_xlabel("Age")
+                ax2.set_ylabel("Number of Patients")
+                ax2.set_title("Patient Age Distribution", fontsize=11, fontweight='bold')
+                fig2.tight_layout()
+                st.pyplot(fig2)
+                plt.close(fig2)
+            else:
+                st.caption("Column 'Age' not found in data.")
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        # --- Row 3: Biomarker averages by risk level ---
+        st.markdown("**Average Biomarker Levels by Risk Category**")
+        biomarker_cols = [c for c in ["CRP", "IL_6", "VCAM_1", "Glutathione"] if c in df.columns]
+        if biomarker_cols and "Risk_Level" in df.columns:
+            avg_bio = df.groupby("Risk_Level")[biomarker_cols].mean().round(2)
+            fig3, ax3 = plt.subplots(figsize=(9, 4))
+            avg_bio.plot(kind="bar", ax=ax3, edgecolor='white')
+            ax3.set_ylabel("Average Level")
+            ax3.set_title("Biomarker Averages per Risk Group", fontsize=11, fontweight='bold')
+            ax3.legend(title="Biomarker", fontsize=8, title_fontsize=9, loc='upper left', bbox_to_anchor=(1.0, 1.0))
+            fig3.tight_layout()
+            st.pyplot(fig3)
+            plt.close(fig3)
+        else:
+            st.caption("Need 'Risk_Level' and biomarker columns (CRP, IL_6, VCAM_1, Glutathione) for this chart.")
+
+        # --- Row 4: Gender breakdown ---
+        if "Gender" in df.columns:
+            st.markdown("**Gender Breakdown**")
+            gender_counts = df["Gender"].value_counts()
+            g1, g2 = st.columns([1, 2])
+            with g1:
+                fig4, ax4 = plt.subplots(figsize=(4, 4))
+                ax4.pie(gender_counts.values, labels=gender_counts.index.astype(str),
+                        autopct='%1.1f%%', colors=['#4b8bff', '#ff9ec5', '#cccccc'], startangle=90)
+                ax4.set_title("Gender Distribution", fontsize=10, fontweight='bold')
+                st.pyplot(fig4)
+                plt.close(fig4)
+            with g2:
+                st.dataframe(gender_counts.reset_index().rename(
+                    columns={"index": "Gender", "Gender": "Count"}), use_container_width=True, hide_index=True)
+
+        # --- Raw data viewer ---
+        with st.expander("📋 View Raw Data Table"):
+            st.dataframe(df, use_container_width=True, hide_index=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("### 📌 About This System")
 
     col_a, col_b = st.columns(2)
@@ -660,6 +789,10 @@ elif st.session_state.page == 'patient_list':
         "database": st.secrets["db_name"],
         "user":     st.secrets["db_user"],
         "password": st.secrets["db_password"],
+        "connection_timeout": 10,
+        "connect_timeout": 10,
+        "autocommit": True,
+        "use_pure": True,
     }
 
     @st.cache_data(ttl=60)            # refresh cache every 60 s
@@ -672,24 +805,20 @@ elif st.session_state.page == 'patient_list':
         conn = mysql.connector.connect(**DB_CONFIG)
         query = """
             SELECT
-    					p.id_pesakit AS `ID`,
-    					p.nama_pesakit AS `Name`,
-    					p.umur AS `Age`,
-    					p.jantina AS `Gender`,
-   					rk.bmi AS `BMI`,
-    					rk.status_merokok AS `Smoking`,
-    					rk.crp_level AS `CRP`,
-    					rk.il6_level AS `IL-6`,
-   				 	rk.vcam1_level AS `VCAM-1`,
-    					rk.glutathione AS `Glutathione`,
-    					la.keputusan_risiko AS `Risk Level`,
-   					rk.tarikh_rekod AS `Date`
-	FROM pesakit p
-	INNER JOIN rekod_kesihatan rk
-    				ON p.id_pesakit = rk.id_pesakit
-	INNER JOIN laporan_analisis la
-    				ON rk.id_rekod = la.id_rekod
-	ORDER BY rk.tarikh_rekod DESC
+                patient_id   AS `ID`,
+                full_name    AS `Name`,
+                age          AS `Age`,
+                gender       AS `Gender`,
+                bmi          AS `BMI`,
+                smoking      AS `Smoking`,
+                crp          AS `CRP`,
+                il6          AS `IL-6`,
+                vcam1        AS `VCAM-1`,
+                glutathione  AS `Glutathione`,
+                risk_label   AS `Risk Level`,
+                created_at   AS `Date`
+            FROM patients
+            ORDER BY created_at DESC
         """
         df = pd.read_sql(query, conn)
         conn.close()
