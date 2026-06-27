@@ -15,181 +15,84 @@ except ImportError:
 # --- 1. CONFIG & ASSETS ---
 st.set_page_config(page_title="PCAD Risk Assessment", layout="wide")
 
-# Custom CSS for the Dashboard
 def local_css():
     st.markdown("""
     <style>
-    /* ---- MAIN PAGE BACKGROUND ---- */
-    .stApp {
-        background-color: #FFF5F7;
-    }
-    [data-testid="stAppViewContainer"] {
-        background-color: #FFF5F7;
-    }
-    [data-testid="stHeader"] {
-        background-color: #FFF5F7;
-    }
-/* ---- LOGIN PAGE STYLES ---- */
+    .stApp { background-color: #FFF5F7; }
+    [data-testid="stAppViewContainer"] { background-color: #FFF5F7; }
+    [data-testid="stHeader"] { background-color: #FFF5F7; }
+
     .login-card {
-        background: white;
-        border-radius: 16px;
-        padding: 36px 32px 28px 32px;
-        text-align: center;
-        box-shadow: 0 8px 24px rgba(0,0,0,0.06);
-        max-width: 380px;
-        margin: 40px auto 24px auto;
+        background: white; border-radius: 16px; padding: 36px 32px 28px 32px;
+        text-align: center; box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+        max-width: 380px; margin: 40px auto 24px auto;
     }
-    .login-heart-icon {
-        font-size: 36px;
-        margin-bottom: 8px;
-    }
-    .login-title {
-        font-size: 19px;
-        font-weight: 800;
-        color: #00000;
-        line-height: 1.3;
-        margin: 8px 0 4px 0;
-    }
-    .login-subtitle {
-        font-size: 14px;
-        color: #888;
-        margin-top: 6px;
-    }
+    .login-heart-icon { font-size: 36px; margin-bottom: 8px; }
+    .login-title { font-size: 19px; font-weight: 800; color: #00000; line-height: 1.3; margin: 8px 0 4px 0; }
+    .login-subtitle { font-size: 14px; color: #888; margin-top: 6px; }
     .login-form-container {
-        max-width: 460px;
-        margin: 0 auto;
-        background: rgba(255,255,255,0.5);
-        padding: 24px 28px;
-        border-radius: 12px;
+        max-width: 460px; margin: 0 auto; background: rgba(255,255,255,0.5);
+        padding: 24px 28px; border-radius: 12px;
     }
     div[data-testid="stForm"] {
-        max-width: 460px;
-        margin: 0 auto;
-        background: rgba(255,255,255,0.5);
-        border-radius: 12px;
-        border: none;
-        padding: 24px 28px;
+        max-width: 460px; margin: 0 auto; background: rgba(255,255,255,0.5);
+        border-radius: 12px; border: none; padding: 24px 28px;
     }
-    div[data-testid="stForm"] button {
-        background-color: #ff4b4b;
-        color: white;
-        border: none;
-        font-weight: 600;
-    }
-    div[data-testid="stForm"] button:hover {
-        background-color: #e63e3e;
-        color: white;
-    }
-                
-    /* ---- SIDEBAR STYLES ---- */
+    div[data-testid="stForm"] button { background-color: #ff4b4b; color: white; border: none; font-weight: 600; }
+    div[data-testid="stForm"] button:hover { background-color: #e63e3e; color: white; }
+
     [data-testid="stSidebar"] {
-        background: linear-gradient(
-    135deg,
-    #ff7aa2 0%,
-    #ff4d7d 45%,
-    #ff2d6f 75%,
-    #e91e63 100%
-);
+        background: linear-gradient(135deg, #ff7aa2 0%, #ff4d7d 45%, #ff2d6f 75%, #e91e63 100%);
     }
     [data-testid="stSidebar"] * { color: #e0e6f0 !important; }
 
     .sidebar-user-card {
-        background: rgba(255,255,255,0.08);
-        border: 1px solid rgba(255,255,255,0.12);
-        border-radius: 12px;
-        padding: 16px;
-        margin-bottom: 8px;
-        text-align: center;
+        background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 12px; padding: 16px; margin-bottom: 8px; text-align: center;
     }
     .sidebar-avatar {
-        width: 56px;
-        height: 56px;
-        border-radius: 50%;
+        width: 56px; height: 56px; border-radius: 50%;
         background: linear-gradient(135deg, #ff4b4b, #ff9a9e);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 24px;
-        margin: 0 auto 10px auto;
-        box-shadow: 0 4px 12px rgba(255,75,75,0.4);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 24px; margin: 0 auto 10px auto; box-shadow: 0 4px 12px rgba(255,75,75,0.4);
     }
-    .sidebar-username {
-        font-weight: 700;
-        font-size: 15px;
-        color: #ffffff !important;
-        margin: 0;
-    }
-    .sidebar-role {
-        font-size: 11px;
-        color: #9aafc7 !important;
-        margin: 2px 0 0 0;
-    }
-    .sidebar-divider {
-        border: none;
-        border-top: 1px solid rgba(255,255,255,0.1);
-        margin: 12px 0;
-    }
+    .sidebar-username { font-weight: 700; font-size: 15px; color: #ffffff !important; margin: 0; }
+    .sidebar-role { font-size: 11px; color: #9aafc7 !important; margin: 2px 0 0 0; }
+    .sidebar-divider { border: none; border-top: 1px solid rgba(255,255,255,0.1); margin: 12px 0; }
     .nav-label {
-        font-size: 10px;
-        font-weight: 700;
-        letter-spacing: 1.5px;
-        color: #ffffff !important;
-        text-transform: uppercase;
-        padding: 4px 0 8px 0;
+        font-size: 10px; font-weight: 700; letter-spacing: 1.5px;
+        color: #ffffff !important; text-transform: uppercase; padding: 4px 0 8px 0;
     }
 
-    /* ---- MAIN PAGE STYLES ---- */
     .patient-banner {
         background: linear-gradient(135deg, #f0f4ff 0%, #e8f0fe 100%);
-        padding: 20px 24px;
-        border-radius: 12px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 20px;
-        border: 1px solid #d0dcf5;
+        padding: 20px 24px; border-radius: 12px; display: flex;
+        justify-content: space-between; align-items: center;
+        margin-bottom: 20px; border: 1px solid #d0dcf5;
     }
     .heartbeat-icon { font-size: 30px; color: #ff4b4b; }
     .banner-item label { font-size: 11px; color: #666; display: block; text-transform: uppercase; letter-spacing: 0.5px; }
     .banner-item span { font-weight: bold; font-size: 18px; color: #1a1f36; }
 
     .risk-card {
-        background: white;
-        padding: 30px;
-        border-radius: 15px;
-        text-align: center;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-        border: 1px solid #f0f0f0;
+        background: white; padding: 30px; border-radius: 15px;
+        text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 1px solid #f0f0f0;
     }
     .donut-outer {
-        margin: 20px auto;
-        width: 150px;
-        height: 150px;
-        border-radius: 50%;
+        margin: 20px auto; width: 150px; height: 150px; border-radius: 50%;
         background: conic-gradient(var(--risk-color) var(--risk-degree), #eee 0deg);
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        display: flex; align-items: center; justify-content: center;
     }
     .donut-inner {
-        width: 120px;
-        height: 120px;
-        background: white;
-        border-radius: 50%;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
+        width: 120px; height: 120px; background: white; border-radius: 50%;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
     }
     .risk-score-text { font-size: 32px; font-weight: bold; }
     .risk-label-box { padding: 10px; border-radius: 8px; font-weight: bold; margin-top: 10px; }
 
     .bio-card {
-        background: #f9f9f9;
-        padding: 15px;
-        border-radius: 10px;
-        border-left: 5px solid #ddd;
-        margin-bottom: 10px;
+        background: #f9f9f9; padding: 15px; border-radius: 10px;
+        border-left: 5px solid #ddd; margin-bottom: 10px;
     }
     .bio-title { font-size: 14px; color: #555; font-weight: 600; }
     .bio-value { font-size: 20px; font-weight: bold; }
@@ -197,23 +100,13 @@ def local_css():
     .status-high { color: #ff4b4b; font-weight: bold; }
     .status-normal { color: #28a745; font-weight: bold; }
     .disclaimer-box {
-        background-color: #fff3cd;
-        padding: 15px;
-        border-radius: 8px;
-        font-size: 13px;
-        margin-top: 20px;
-        border-left: 4px solid #ffc107;
+        background-color: #fff3cd; padding: 15px; border-radius: 8px;
+        font-size: 13px; margin-top: 20px; border-left: 4px solid #ffc107;
     }
 
-    /* ---- DASHBOARD / MAIN MENU STYLES ---- */
     .dash-metric-card {
-        background: white;
-        border-radius: 12px;
-        padding: 20px;
-        text-align: center;
-        box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-        border: 1px solid #f0f0f0;
-        transition: transform 0.2s;
+        background: white; border-radius: 12px; padding: 20px; text-align: center;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.06); border: 1px solid #f0f0f0; transition: transform 0.2s;
     }
     .dash-metric-card:hover { transform: translateY(-2px); }
     .dash-metric-icon { font-size: 36px; margin-bottom: 8px; }
@@ -221,44 +114,23 @@ def local_css():
     .dash-metric-label { font-size: 13px; color: #888; margin-top: 4px; }
 
     .info-card {
-        background: white;
-        border-radius: 12px;
-        padding: 20px;
-        box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-        border: 1px solid #f0f0f0;
-        margin-bottom: 16px;
+        background: white; border-radius: 12px; padding: 20px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.06); border: 1px solid #f0f0f0; margin-bottom: 16px;
     }
     .info-card h4 { margin: 0 0 8px 0; color: #1a1f36; }
     .info-card p { margin: 0; font-size: 14px; color: #555; line-height: 1.6; }
 
-    /* ---- PATIENT LIST STYLES ---- */
-    .db-status-badge {
-        display: inline-block;
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 12px;
-        font-weight: 600;
-    }
+    .db-status-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
     .db-connected { background: #d4edda; color: #155724; }
     .db-disconnected { background: #f8d7da; color: #721c24; }
 
-    /* Hide default streamlit elements in sidebar nav */
     div[data-testid="stSidebarUserContent"] .stButton button {
-        width: 100%;
-        text-align: left;
-        background: transparent;
-        border: none;
-        border-radius: 8px;
-        padding: 10px 14px;
-        font-size: 14px;
-        font-weight: 500;
-        color: #c8d6ea !important;
-        transition: background 0.2s;
-        cursor: pointer;
+        width: 100%; text-align: left; background: transparent; border: none;
+        border-radius: 8px; padding: 10px 14px; font-size: 14px; font-weight: 500;
+        color: #c8d6ea !important; transition: background 0.2s; cursor: pointer;
     }
     div[data-testid="stSidebarUserContent"] .stButton button:hover {
-        background: rgba(255,255,255,0.1) !important;
-        color: #ffffff !important;
+        background: rgba(255,255,255,0.1) !important; color: #ffffff !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -276,9 +148,9 @@ def load_assets():
         return model, preprocessor, None
     except Exception as e:
         return None, None, str(e)
- 
+
 model, preprocessor, load_error = load_assets()
- 
+
 # --- 2. SESSION STATE MANAGEMENT ---
 if 'page' not in st.session_state:
     st.session_state.page = 'main_menu'
@@ -287,28 +159,23 @@ if 'patient_data' not in st.session_state:
 if 'risk_result' not in st.session_state:
     st.session_state.risk_result = {}
 if 'shap_input' not in st.session_state:
-    st.session_state.shap_input = None      # raw (unscaled) DataFrame row
+    st.session_state.shap_input = None
 if 'shap_scaled' not in st.session_state:
-    st.session_state.shap_scaled = None     # preprocessed array row
+    st.session_state.shap_scaled = None
 if 'db_save_status' not in st.session_state:
-    st.session_state.db_save_status = None  # (status: 'success'/'error', message)
+    st.session_state.db_save_status = None
 if 'delete_status' not in st.session_state:
-    st.session_state.delete_status = None   # (status: 'success'/'error', message)
+    st.session_state.delete_status = None
 if 'is_authenticated' not in st.session_state:
     st.session_state.is_authenticated = False
 if 'logged_in_user' not in st.session_state:
     st.session_state.logged_in_user = None
 if 'login_error' not in st.session_state:
     st.session_state.login_error = None
- 
- 
-# ── Authentication Function ─────────────────────────────────────────────────
+
+
+# ── Authentication Function ──────────────────────────────────────────────────
 def authenticate_user(identifier, password):
-    """
-    Checks the given identifier (matches nama_staf OR emel) and password
-    against the Pengguna table. Password is verified using bcrypt.
-    Returns (success: bool, user_dict_or_error_message)
-    """
     import mysql.connector
     conn = None
     try:
@@ -328,36 +195,36 @@ def authenticate_user(identifier, password):
         )
         row = cursor.fetchone()
         cursor.close()
- 
+
         if row is None:
             return False, "Invalid username or password."
- 
+
         stored_hash = row["kata_laluan"]
         try:
             password_matches = bcrypt.checkpw(password.encode("utf-8"), stored_hash.encode("utf-8"))
         except (ValueError, AttributeError):
-            # stored_hash isn't a valid bcrypt hash (e.g. still plaintext)
             return False, "Account password is not set up correctly. Please contact admin."
- 
+
         if not password_matches:
             return False, "Invalid username or password."
- 
+
         return True, {
             "id_staf": row["id_staf"],
             "name": row["nama_staf"],
             "role": "Staff",
         }
- 
+
     except Exception as e:
         return False, f"Login failed: {e}"
     finally:
         if conn and conn.is_connected():
             conn.close()
- 
+
+
 local_css()
- 
+
 # ─────────────────────────────────────────────
-# LOGIN PAGE (shown when not authenticated)
+# LOGIN PAGE
 # ─────────────────────────────────────────────
 if not st.session_state.is_authenticated:
     st.markdown("""
@@ -367,16 +234,16 @@ if not st.session_state.is_authenticated:
             <div class="login-subtitle">Log In</div>
         </div>
     """, unsafe_allow_html=True)
- 
+
     if st.session_state.login_error:
         st.error(st.session_state.login_error)
         st.session_state.login_error = None
- 
+
     with st.form("login_form"):
         username = st.text_input("Username", placeholder="Enter staff name or email")
         password = st.text_input("Password", type="password", placeholder="Enter password")
         login_submit = st.form_submit_button("Log In", use_container_width=True)
- 
+
     if login_submit:
         if not username or not password:
             st.session_state.login_error = "Please enter both username and password."
@@ -391,16 +258,15 @@ if not st.session_state.is_authenticated:
             else:
                 st.session_state.login_error = result
                 st.rerun()
- 
-    st.stop()  # Don't render anything below until logged in
- 
- 
+
+    st.stop()
+
+
 # --- 3. SIDEBAR (only shown when authenticated) ---
 with st.sidebar:
     user = st.session_state.logged_in_user
     initials = "".join([w[0].upper() for w in user['name'].split()[:2]])
- 
-    # User Card
+
     st.markdown(f"""
         <div class="sidebar-user-card">
             <div class="sidebar-avatar">{initials}</div>
@@ -408,8 +274,7 @@ with st.sidebar:
             <p class="sidebar-role">{user['role']}</p>
         </div>
     """, unsafe_allow_html=True)
- 
-    # Logout Button
+
     if st.button("🔓  Log Out", key="logout_btn", use_container_width=True):
         st.session_state.is_authenticated = False
         st.session_state.logged_in_user = None
@@ -417,12 +282,10 @@ with st.sidebar:
         st.session_state.patient_data = {}
         st.session_state.risk_result = {}
         st.rerun()
- 
- 
+
     st.markdown('<hr class="sidebar-divider">', unsafe_allow_html=True)
     st.markdown('<div class="nav-label">Navigation</div>', unsafe_allow_html=True)
- 
-    # Nav Buttons
+
     nav_items = [
         ("🏠  Homepage",        "main_menu"),
         ("🫀  Predict PCAD",     "form"),
@@ -434,10 +297,12 @@ with st.sidebar:
         if st.button(btn_label, key=f"nav_{page_key}", use_container_width=True):
             st.session_state.page = page_key
             st.rerun()
- 
+
     st.markdown('<hr class="sidebar-divider">', unsafe_allow_html=True)
     st.markdown('<div style="font-size:11px; color:#4a637a; text-align:center;">PCAD Risk System v2.0</div>', unsafe_allow_html=True)
- 
+# ── END SIDEBAR ──
+
+
 # ─────────────────────────────────────────────
 # PAGE: HOMEPAGE
 # ─────────────────────────────────────────────
@@ -448,59 +313,55 @@ if st.session_state.page == 'main_menu':
     # ══════════════════════════════════════════
     st.markdown("## 📌 About This System")
     st.markdown(
-    f"Welcome back, **{st.session_state.logged_in_user['name']}**. Here's an overview of the PCAD Risk Prediction and Classification System."
+        f"Welcome back, **{st.session_state.logged_in_user['name']}**. "
+        "Here's an overview of the PCAD Risk Prediction and Classification System."
     )
-
     st.markdown("<br>", unsafe_allow_html=True)
 
-    
     st.markdown("""
         <div class="info-card">
-        <h4>🎯 Purpose</h4>
-        <p>
-        This system predicts the risk level of Premature Coronary Artery Disease (PCAD)
-        using patient biomarkers and clinical data. It leverages a trained machine learning
-        model to classify patients into <b>Low</b>, <b>Medium</b>, or <b>High</b> risk categories.
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
-
-    # Two-column layout
-    col_a, col_b = st.columns(2)
-
-    # Left Column
-    with col_a:
-        st.markdown("""
-        <div class="info-card">
-            <h4>🧪 Key Biomarkers Assessed</h4>
+            <h4>🎯 Purpose</h4>
             <p>
-            <b>CRP</b> — C-Reactive Protein (inflammation marker)<br>
-            <b>IL-6</b> — Interleukin-6 (cytokine inflammatory marker)<br>
-            <b>VCAM-1</b> — Vascular Cell Adhesion Molecule<br>
-            <b>Glutathione</b> — Antioxidant stress indicator
+            This system predicts the risk level of Premature Coronary Artery Disease (PCAD)
+            using patient biomarkers and clinical data. It leverages a trained machine learning
+            model to classify patients into <b>Low</b>, <b>Medium</b>, or <b>High</b> risk categories.
             </p>
         </div>
-        """, unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
+    col_a, col_b = st.columns(2)
+    with col_a:
+        st.markdown("""
+            <div class="info-card">
+                <h4>🧪 Key Biomarkers Assessed</h4>
+                <p>
+                <b>CRP</b> — C-Reactive Protein (inflammation marker)<br>
+                <b>IL-6</b> — Interleukin-6 (cytokine inflammatory marker)<br>
+                <b>VCAM-1</b> — Vascular Cell Adhesion Molecule<br>
+                <b>Glutathione</b> — Antioxidant stress indicator
+                </p>
+            </div>
+        """, unsafe_allow_html=True)
 
     with col_b:
         st.markdown("""
-        <div class="info-card">
-            <h4>📊 Risk Classification</h4>
-            <p>
-                <span style="color:#28a745; font-weight:700;">● LOW RISK</span><br>
-                Biomarkers within healthy range.<br>
-                <span style="color:#ffa500; font-weight:700;">● MEDIUM RISK</span><br>
-                Some biomarkers are elevated and may require monitoring.<br>
-                <span style="color:#ff4b4b; font-weight:700;">● HIGH RISK</span><br>
-                Multiple biomarkers are elevated, indicating a higher likelihood of PCAD.
-            </p>
-        </div>
+            <div class="info-card">
+                <h4>📊 Risk Classification</h4>
+                <p>
+                    <span style="color:#28a745; font-weight:700;">● LOW RISK</span><br>
+                    Biomarkers within healthy range.<br>
+                    <span style="color:#ffa500; font-weight:700;">● MEDIUM RISK</span><br>
+                    Some biomarkers are elevated and may require monitoring.<br>
+                    <span style="color:#ff4b4b; font-weight:700;">● HIGH RISK</span><br>
+                    Multiple biomarkers are elevated, indicating a higher likelihood of PCAD.
+                </p>
+            </div>
         """, unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("---")
-   # ══════════════════════════════════════════
+
+    # ══════════════════════════════════════════
     # SECTION 2: DATA EXPLORATION
     # ══════════════════════════════════════════
     st.markdown("## 📊 Data Exploration")
@@ -585,6 +446,10 @@ if st.session_state.page == 'main_menu':
 
         with st.expander("📋 View Raw Data Table"):
             st.dataframe(df, use_container_width=True, hide_index=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("---")
+
     # ══════════════════════════════════════════
     # SECTION 3: MODEL PERFORMANCE
     # ══════════════════════════════════════════
@@ -592,32 +457,18 @@ if st.session_state.page == 'main_menu':
     st.markdown("Evaluation metrics of the trained PCAD risk classification model for High Risk.")
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # ── Option A: Load pre-computed metrics from a JSON/dict (recommended) ──
-    # Replace these values with your actual model evaluation results.
-    # You can save them from your training script with json.dump() and load here,
-    # or simply hard-code the final numbers after training.
     model_metrics = {
-        "Accuracy":  0.91,   # ← replace with your real value
-        "Precision": 0.88,   # ← replace with your real value
-        "Recall":    1.0,   # ← replace with your real value
-        "F1 Score":  0.93,  # ← replace with your real value
+        "Accuracy":  0.91,
+        "Precision": 0.88,
+        "Recall":    1.0,
+        "F1 Score":  0.93,
     }
 
-    # ── Optional: load from a saved JSON file ──────────────────────────────
-    # import json
-    # METRICS_PATH = os.path.join(APP_DIR, "data", "model_metrics.json")
-    # try:
-    #     with open(METRICS_PATH) as f:
-    #         model_metrics = json.load(f)
-    # except FileNotFoundError:
-    #     pass  # fall back to hard-coded values above
+    metric_colors = ["#28a745", "#3498db", "#e74c3c", "#f39c12"]
+    metric_icons  = ["✅", "🎯", "🔍", "⚖️"]
+    metric_names  = list(model_metrics.keys())
+    metric_values = list(model_metrics.values())
 
-    metric_colors  = ["#28a745", "#3498db", "#e74c3c", "#f39c12"]
-    metric_icons   = ["✅", "🎯", "🔍", "⚖️"]
-    metric_names   = list(model_metrics.keys())
-    metric_values  = list(model_metrics.values())
-
-    # ── Metric cards ───────────────────────────────────────────────────────
     perf_cols = st.columns(4)
     for col, name, value, color, icon in zip(perf_cols, metric_names, metric_values,
                                               metric_colors, metric_icons):
@@ -631,10 +482,6 @@ if st.session_state.page == 'main_menu':
             """, unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
-
-
-    # ── Metric interpretation guide ────────────────────────────────────────
-    st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("""
         <div class="info-card">
             <h4>📖 Metric Definitions</h4>
@@ -647,78 +494,73 @@ if st.session_state.page == 'main_menu':
         </div>
     """, unsafe_allow_html=True)
 
+
 # ─────────────────────────────────────────────
 # PAGE: PREDICT PCAD (Patient Data Entry)
 # ─────────────────────────────────────────────
 elif st.session_state.page == 'form':
+    
+    st.markdown("""
+        <style>
+        div[data-testid="stForm"] {
+            max-width: 100% !important;
+            width: 100% !important;
+            padding: 0 !important;
+            background: transparent !important;
+            border-radius: 0 !important;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
     st.markdown("## 🫀 Predict PCAD — Patient Data Entry")
     st.write("Enter the patient's clinical data below to generate a risk classification.")
- 
-    # ── MySQL Save Function ────────────────────────────────────────────────
+
     DB_CONFIG = {
-        "host":     st.secrets["db_host"],
-        "port":     st.secrets["db_port"],
-        "database": st.secrets["db_name"],
-        "user":     st.secrets["db_user"],
-        "password": st.secrets["db_password"],
+        "host":               st.secrets["db_host"],
+        "port":               st.secrets["db_port"],
+        "database":           st.secrets["db_name"],
+        "user":               st.secrets["db_user"],
+        "password":           st.secrets["db_password"],
         "connection_timeout": 10,
-        "autocommit": False,
+        "autocommit":         False,
     }
- 
+
     def get_or_create_default_staff(cursor):
-        """
-        Ensures a valid id_staf exists before inserting Rekod_Kesihatan.
-        Returns an existing id_staf if any row exists in Pengguna,
-        otherwise creates a default staff record and returns its new id_staf.
-        """
         cursor.execute("SELECT id_staf FROM Pengguna ORDER BY id_staf LIMIT 1")
         row = cursor.fetchone()
         if row:
             return row[0]
- 
-        # No staff exists yet — create a default one
         cursor.execute(
             "INSERT INTO Pengguna (nama_staf, emel, kata_laluan) VALUES (%s, %s, %s)",
             ("Default Staff", "default.staff@ukm.edu.my", "changeme")
         )
         return cursor.lastrowid
- 
-    # ── Biomarker thresholds (same as used on the result page) ────────────
-    # Returns "High"/"Normal" normally, or "Low"/"Normal" for reverse biomarkers
-    # (e.g. Glutathione, where a LOW value is the concerning one).
+
     def get_biomarker_status(value, threshold, is_reverse=False):
         is_bad = (value < threshold) if is_reverse else (value > threshold)
         if is_reverse:
             return "Low" if is_bad else "Normal"
         return "High" if is_bad else "Normal"
- 
+
     def save_prediction_to_db(name, age, gender, bmi, smoking, lipid, renal, liver,
                                crp, vcam1, il6, glutathione, id_kluster, keputusan_risiko,
                                id_staf=None):
-        """
-        Inserts a full prediction record across the 3 linked tables:
-        Pesakit -> Rekod_Kesihatan -> Laporan_Analisis
-        Returns (success: bool, message: str)
-        """
         import mysql.connector
         conn = None
         try:
             conn = mysql.connector.connect(**DB_CONFIG)
             cursor = conn.cursor()
- 
-            # Resolve a valid id_staf (use provided one, else fetch/create default)
+
             if id_staf is None:
                 id_staf = get_or_create_default_staff(cursor)
- 
-            # 1. Insert into Pesakit
+
             jantina = "Lelaki" if gender == 1 else "Perempuan"
             cursor.execute(
                 "INSERT INTO Pesakit (nama_pesakit, umur, jantina) VALUES (%s, %s, %s)",
                 (name, age, jantina)
             )
             id_pesakit = cursor.lastrowid
- 
-            # 2. Insert into Rekod_Kesihatan
+
             cursor.execute(
                 """INSERT INTO Rekod_Kesihatan
                    (id_staf, id_pesakit, umur, bmi, status_merokok, profil_lipid,
@@ -728,13 +570,12 @@ elif st.session_state.page == 'form':
                  crp, vcam1, il6, glutathione)
             )
             id_rekod = cursor.lastrowid
- 
-            # 3. Insert into Laporan_Analisis (status labels, not raw values)
+
             status_crp         = get_biomarker_status(crp, 3.0)
             status_vcam1       = get_biomarker_status(vcam1, 500)
             status_il6         = get_biomarker_status(il6, 5.0)
             status_glutathione = get_biomarker_status(glutathione, 4.0, is_reverse=True)
- 
+
             cursor.execute(
                 """INSERT INTO Laporan_Analisis
                    (id_rekod, id_kluster, keputusan_risiko,
@@ -743,20 +584,16 @@ elif st.session_state.page == 'form':
                 (id_rekod, id_kluster, keputusan_risiko,
                  status_crp, status_vcam1, status_il6, status_glutathione)
             )
- 
+
             conn.commit()
- 
-            # Verify the row actually exists after commit (sanity check)
+
             cursor.execute("SELECT COUNT(*) FROM Pesakit WHERE id_pesakit = %s", (id_pesakit,))
             verify_count = cursor.fetchone()[0]
- 
-            cursor.execute("SELECT DATABASE()")
-            current_db = cursor.fetchone()[0]
- 
             cursor.close()
+
             return True, (f"Patient ID: {id_pesakit}, Record ID: {id_rekod} | "
-                           f"Verified rows in Pesakit: {verify_count}")
- 
+                          f"Verified rows in Pesakit: {verify_count}")
+
         except Exception as e:
             if conn:
                 conn.rollback()
@@ -764,44 +601,43 @@ elif st.session_state.page == 'form':
         finally:
             if conn and conn.is_connected():
                 conn.close()
- 
+
     with st.form("prediction_form"):
         name = st.text_input("Patient Full Name", value="John Doe")
- 
+
         col1, col2 = st.columns(2)
         with col1:
-            age = st.number_input("Age", min_value=1, max_value=120, value=50)
-            bmi = st.number_input("BMI", min_value=10.0, max_value=50.0, value=25.0)
-            gender = st.selectbox("Gender", options=[1, 0], format_func=lambda x: "Male" if x == 1 else "Female")
-            smoking = st.selectbox("Smoking Status", options=[1, 0], format_func=lambda x: "Smoker" if x == 1 else "Non-Smoker")
-            crp = st.number_input("CRP Level (mg/L)", value=3.0)
-            il6 = st.number_input("IL-6 Level (pg/mL)", value=5.0)
+            age       = st.number_input("Age", min_value=1, max_value=120, value=50)
+            bmi       = st.number_input("BMI", min_value=10.0, max_value=50.0, value=25.0)
+            gender    = st.selectbox("Gender", options=[1, 0], format_func=lambda x: "Male" if x == 1 else "Female")
+            smoking   = st.selectbox("Smoking Status", options=[1, 0], format_func=lambda x: "Smoker" if x == 1 else "Non-Smoker")
+            crp       = st.number_input("CRP Level (mg/L)", value=3.0)
+            il6       = st.number_input("IL-6 Level (pg/mL)", value=5.0)
         with col2:
-            vcam = st.number_input("VCAM-1 Level (ng/mL)", value=600.0)
-            glutathione = st.number_input("Glutathione (μmol/L)", value=8.0)
-            lipid = st.number_input("Lipid Profile", value=200.0)
-            renal = st.number_input("Renal Profile", value=1.0)
-            liver = st.number_input("Liver Profile", value=35.0)
- 
+            vcam        = st.number_input("VCAM-1 Level (ng/mL)", value=600.0)
+            glutathione = st.number_input("Glutathione (mmol/L)", value=8.0)
+            lipid       = st.number_input("Lipid Profile", value=200.0)
+            renal       = st.number_input("Renal Profile", value=1.0)
+            liver       = st.number_input("Liver Profile", value=35.0)
+
         submit = st.form_submit_button("Predict Risk Level", use_container_width=True, type="primary")
- 
+
     if submit:
         input_data = pd.DataFrame(
             [[age, bmi, gender, smoking, crp, il6, vcam, glutathione, lipid, renal, liver]],
             columns=['Age', 'BMI', 'Gender', 'Smoking_Status', 'CRP', 'IL_6',
                      'VCAM_1', 'Glutathione', 'Lipid_Profile', 'Renal_Profile', 'Liver_Profile']
         )
- 
+
         if model is not None and preprocessor is not None:
             data_scaled = preprocessor.transform(input_data)
-            prediction = model.predict(data_scaled)[0]
+            prediction  = model.predict(data_scaled)[0]
             st.session_state.shap_input  = input_data
             st.session_state.shap_scaled = data_scaled
         else:
-            # Demo fallback when model files are missing
             st.warning(f"⚠️ Model files not found. Showing demo result. Error: `{load_error}`")
             prediction = 'High'
- 
+
         res_map = {
             'High':   {'label': 'HIGH RISK',   'color': '#ff4b4b', 'degree': '300deg', 'score': 85},
             2:        {'label': 'HIGH RISK',   'color': '#ff4b4b', 'degree': '300deg', 'score': 85},
@@ -810,20 +646,19 @@ elif st.session_state.page == 'form':
             'Low':    {'label': 'LOW RISK',    'color': '#28a745', 'degree': '60deg',  'score': 15},
             0:        {'label': 'LOW RISK',    'color': '#28a745', 'degree': '60deg',  'score': 15},
         }
- 
+
         st.session_state.patient_data = {
             'name': name, 'age': age, 'bmi': bmi,
             'smoking': "Smoker" if smoking == 1 else "Non-Smoker",
             'crp': crp, 'il6': il6, 'vcam': vcam, 'glutathione': glutathione
         }
         st.session_state.risk_result = res_map.get(prediction, res_map['Low'])
- 
-        # ── Save to MySQL database ──────────────────────────────────────────
-        id_kluster_map  = {'Low': 0, 'Medium': 1, 'High': 2, 0: 0, 1: 1, 2: 2}
+
+        id_kluster_map   = {'Low': 0, 'Medium': 1, 'High': 2, 0: 0, 1: 1, 2: 2}
         risiko_label_map = {'Low': 'Low', 'Medium': 'Medium', 'High': 'High', 0: 'Low', 1: 'Medium', 2: 'High'}
-        id_kluster        = id_kluster_map.get(prediction, 0)
-        keputusan_risiko  = risiko_label_map.get(prediction, 'Low')
- 
+        id_kluster       = id_kluster_map.get(prediction, 0)
+        keputusan_risiko = risiko_label_map.get(prediction, 'Low')
+
         try:
             success, msg = save_prediction_to_db(
                 name=name, age=age, gender=gender, bmi=bmi, smoking=smoking,
@@ -831,38 +666,33 @@ elif st.session_state.page == 'form':
                 crp=crp, vcam1=vcam, il6=il6, glutathione=glutathione,
                 id_kluster=id_kluster, keputusan_risiko=keputusan_risiko
             )
-            if success:
-                st.session_state.db_save_status = ("success", msg)
-            else:
-                st.session_state.db_save_status = ("error", msg)
+            st.session_state.db_save_status = ("success", msg) if success else ("error", msg)
         except Exception as e:
             st.session_state.db_save_status = ("error", str(e))
- 
+
         st.session_state.page = 'result'
         st.rerun()
- 
- 
+
+
 # ─────────────────────────────────────────────
 # PAGE: RESULT DASHBOARD
 # ─────────────────────────────────────────────
 elif st.session_state.page == 'result':
     data = st.session_state.patient_data
     res  = st.session_state.risk_result
- 
+
     st.markdown("## ❤️ CAD Risk Assessment Results")
- 
-    # ── Database save confirmation banner ───────────────────────────────────
+
     if st.session_state.db_save_status is not None:
         status, msg = st.session_state.db_save_status
         if status == "success":
             st.success(f"✅ Patient record saved to database. {msg}")
         else:
             st.error(f"❌ Failed to save to database: {msg}")
-        st.session_state.db_save_status = None  # show only once
- 
+        st.session_state.db_save_status = None
+
     st.markdown("<br>", unsafe_allow_html=True)
- 
-    # Patient Banner
+
     st.markdown(f"""
         <div class="patient-banner">
             <div class="heartbeat-icon">∿</div>
@@ -872,15 +702,14 @@ elif st.session_state.page == 'result':
             <div class="banner-item"><label>SMOKING</label><span>{data['smoking']}</span></div>
         </div>
     """, unsafe_allow_html=True)
- 
+
     left_col, right_col = st.columns([1, 2])
- 
+
     with left_col:
-        # Split label into two lines for cleaner centering (e.g. "HIGH" / "RISK")
         label_parts = res['label'].split(' ')
         label_line1 = label_parts[0] if len(label_parts) > 0 else res['label']
         label_line2 = ' '.join(label_parts[1:]) if len(label_parts) > 1 else ''
- 
+
         st.markdown(f"""
             <div class="risk-card">
                 <div style="font-weight:600; color:#555;">PREMATURE CAD RISK</div>
@@ -892,26 +721,24 @@ elif st.session_state.page == 'result':
                 </div>
             </div>
         """, unsafe_allow_html=True)
- 
+
     with right_col:
         st.markdown('<h6>🕒 BIOMARKER ANALYSIS</h6>', unsafe_allow_html=True)
- 
+
         def get_bio_html(label, value, unit, threshold, is_reverse=False):
             is_bad = (value < threshold) if is_reverse else (value > threshold)
- 
-            # For reverse biomarkers (like Glutathione), "bad" means LOW, not HIGH.
-            # Show "Low" as the status text in that case so it isn't misleading.
             if is_reverse:
                 status_text = "Low" if is_bad else "Normal"
             else:
                 status_text = "High" if is_bad else "Normal"
             status_class = "status-high" if is_bad else "status-normal"
- 
+
             desc = "Levels are within range."
-            if label == "CRP"        and is_bad: desc = "Indicates systemic inflammation."
-            elif label == "VCAM-1"   and is_bad: desc = "Endothelial dysfunction detected."
+            if label == "CRP"           and is_bad: desc = "Indicates systemic inflammation."
+            elif label == "VCAM-1"      and is_bad: desc = "Endothelial dysfunction detected."
             elif label == "Glutathione" and is_bad: desc = "Depleted antioxidants increase oxidative stress."
-            elif not is_bad: desc = "Within healthy clinical range."
+            elif not is_bad:                        desc = "Within healthy clinical range."
+
             return f"""
                 <div class="bio-card">
                     <div class="bio-title">{label}</div>
@@ -920,49 +747,45 @@ elif st.session_state.page == 'result':
                     <div class="{status_class}">{status_text}</div>
                 </div>
             """
- 
+
         r1a, r1b = st.columns(2)
-        with r1a: st.markdown(get_bio_html("CRP",    data['crp'],         "mg/L",   3.0),          unsafe_allow_html=True)
-        with r1b: st.markdown(get_bio_html("IL-6",   data['il6'],         "pg/mL",  5.0),          unsafe_allow_html=True)
+        with r1a: st.markdown(get_bio_html("CRP",         data['crp'],         "mg/L",   3.0),       unsafe_allow_html=True)
+        with r1b: st.markdown(get_bio_html("IL-6",        data['il6'],         "pg/mL",  5.0),       unsafe_allow_html=True)
         r2a, r2b = st.columns(2)
-        with r2a: st.markdown(get_bio_html("VCAM-1", data['vcam'],        "ng/mL",  500),          unsafe_allow_html=True)
+        with r2a: st.markdown(get_bio_html("VCAM-1",      data['vcam'],        "ng/mL",  500),       unsafe_allow_html=True)
         with r2b: st.markdown(get_bio_html("Glutathione", data['glutathione'], "mmol/L", 4.0, True), unsafe_allow_html=True)
- 
+
         st.caption(
             "ℹ️ Note: Glutathione works in reverse — a **Low** result (below the healthy threshold) "
             "is the concerning sign, since glutathione is an antioxidant that *protects* against "
             "cardiovascular stress. Lower levels mean weaker antioxidant defence."
         )
- 
+
     st.markdown("""
         <div class="disclaimer-box">
             <b>⚕️ Medical Disclaimer:</b> This assessment is for informational purposes only.
             It should not replace professional medical diagnosis. Please consult with a cardiologist.
         </div>
     """, unsafe_allow_html=True)
- 
-    # ── SHAP ANALYSIS SECTION ─────────────────────────────────────────────────
+
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("---")
     st.markdown("### 🔍 AI Explanation — Why This Risk Level?")
     st.markdown("SHAP (SHapley Additive exPlanations) shows **which features pushed the prediction** toward or away from the predicted risk class.")
- 
+
     if not SHAP_AVAILABLE:
         st.warning("⚠️ SHAP library not installed. Run `pip install shap` and restart.")
- 
     elif model is None or preprocessor is None:
         st.info("ℹ️ SHAP analysis requires the trained model files (`pcad_model.pkl` and `preprocessor.pkl`).")
- 
     elif st.session_state.shap_scaled is None:
         st.info("ℹ️ Submit patient data first to see the SHAP explanation.")
- 
     else:
         feature_names = [
             'Age', 'BMI', 'Gender', 'Smoking Status',
             'CRP', 'IL-6', 'VCAM-1', 'Glutathione',
             'Lipid Profile', 'Renal Profile', 'Liver Profile'
         ]
- 
+
         @st.cache_resource
         def get_shap_explainer(_mdl):
             try:
@@ -972,11 +795,11 @@ elif st.session_state.page == 'result':
                     return shap.Explainer(_mdl), "generic"
                 except Exception as e:
                     return None, str(e)
- 
+
         with st.spinner("Calculating SHAP values..."):
             try:
                 explainer, exp_type = get_shap_explainer(model)
- 
+
                 if explainer is None:
                     st.warning(f"Could not build SHAP explainer: {exp_type}")
                 else:
@@ -985,14 +808,13 @@ elif st.session_state.page == 'result':
                     class_idx_map = {"LOW RISK": 0, "MEDIUM RISK": 1, "HIGH RISK": 2}
                     class_idx     = class_idx_map.get(pred_label, 0)
                     n_classes     = len(class_idx_map)
- 
+
                     if exp_type == "tree":
                         raw_shap = explainer.shap_values(st.session_state.shap_scaled)
                     else:
                         exp_obj  = explainer(st.session_state.shap_scaled)
                         raw_shap = exp_obj.values
- 
-                    # normalise to 1-D float array for the predicted class
+
                     if isinstance(raw_shap, list):
                         elem = np.array(raw_shap[class_idx], dtype=float)
                         sv   = elem.flatten() if elem.ndim == 1 else elem[0]
@@ -1011,24 +833,21 @@ elif st.session_state.page == 'result':
                                 sv = arr[0, 0, :]
                         else:
                             sv = arr.flatten()
- 
+
                     sv = sv.astype(float)
- 
-                # ── Tab layout ───────────────────────────────────────────────
+
                     tab1, tab2, tab3 = st.tabs(["Waterfall Chart", "Bar Chart", "Feature Table"])
- 
-                    # TAB 1: Waterfall
+
                     with tab1:
                         st.markdown("**Waterfall chart** — each bar shows how much a feature increased (red) or decreased (blue) the risk score.")
- 
+
                         sorted_idx  = np.argsort(np.abs(sv))[::-1]
                         top_n       = min(11, len(sorted_idx))
                         idx_top     = sorted_idx[:top_n][::-1]
- 
                         feat_labels = [f"{feature_names[i]}\n= {raw_vals[i]:.2f}" for i in idx_top]
                         values      = sv[idx_top]
                         colors      = ['#ff4b4b' if v > 0 else '#4b8bff' for v in values]
- 
+
                         fig_wf, ax_wf = plt.subplots(figsize=(9, 5))
                         bars = ax_wf.barh(range(len(values)), values, color=colors, edgecolor='white', height=0.6)
                         ax_wf.set_yticks(range(len(values)))
@@ -1047,14 +866,14 @@ elif st.session_state.page == 'result':
                         fig_wf.tight_layout()
                         st.pyplot(fig_wf)
                         plt.close(fig_wf)
- 
-                    # TAB 2: Bar chart
+
                     with tab2:
                         st.markdown("**Bar chart** — absolute SHAP value per feature; longer bar = more influential.")
                         abs_sv     = np.abs(sv)
                         sorted_abs = np.argsort(abs_sv)
                         feat_bar   = [feature_names[i] for i in sorted_abs]
                         vals_bar   = abs_sv[sorted_abs]
+
                         fig_bar, ax_bar = plt.subplots(figsize=(9, 5))
                         bar_colors = plt.cm.RdYlGn_r(np.linspace(0.2, 0.8, len(vals_bar)))
                         ax_bar.barh(range(len(vals_bar)), vals_bar, color=bar_colors, edgecolor='white', height=0.6)
@@ -1067,8 +886,7 @@ elif st.session_state.page == 'result':
                         fig_bar.tight_layout()
                         st.pyplot(fig_bar)
                         plt.close(fig_bar)
- 
-                    # TAB 3: Table
+
                     with tab3:
                         st.markdown("**Detailed breakdown** of SHAP values per feature.")
                         shap_df = pd.DataFrame({
@@ -1078,53 +896,47 @@ elif st.session_state.page == 'result':
                             'Direction':     ['Up - Increases Risk' if v > 0 else 'Down - Decreases Risk' for v in sv],
                             '|Impact|':      [round(abs(float(v)), 4) for v in sv],
                         }).sort_values('|Impact|', ascending=False).reset_index(drop=True)
- 
+
                         def highlight_direction(val):
-                            if 'Up' in str(val):   return 'color: #c0392b; font-weight: 600'
+                            if 'Up'   in str(val): return 'color: #c0392b; font-weight: 600'
                             if 'Down' in str(val): return 'color: #27ae60; font-weight: 600'
                             return ''
- 
+
                         styled_shap = shap_df.style.map(highlight_direction, subset=['Direction'])
                         st.dataframe(styled_shap, use_container_width=True, hide_index=True)
                         csv_shap = shap_df.to_csv(index=False).encode('utf-8')
                         st.download_button("Download SHAP Table", csv_shap, "shap_analysis.csv", "text/csv")
- 
+
             except Exception as e:
                 st.error(f"SHAP calculation failed: `{e}`")
- 
+
     st.markdown("<br>", unsafe_allow_html=True)
     if st.button("🔄 Update Patient Data", type="primary", use_container_width=True):
         st.session_state.page = 'form'
         st.rerun()
- 
- 
+
+
 # ─────────────────────────────────────────────
 # PAGE: PATIENT DATA LIST (MySQL)
 # ─────────────────────────────────────────────
 elif st.session_state.page == 'patient_list':
     st.markdown("## 🗃️ Patient Data List")
     st.markdown("Patient records loaded from the MySQL database.")
- 
-    # ── MySQL Connection (credentials pulled from Streamlit Secrets) ──────────
+
     DB_CONFIG = {
-        "host":     st.secrets["db_host"],
-        "port":     st.secrets["db_port"],
-        "database": st.secrets["db_name"],
-        "user":     st.secrets["db_user"],
-        "password": st.secrets["db_password"],
+        "host":               st.secrets["db_host"],
+        "port":               st.secrets["db_port"],
+        "database":           st.secrets["db_name"],
+        "user":               st.secrets["db_user"],
+        "password":           st.secrets["db_password"],
         "connection_timeout": 10,
-        "connect_timeout": 10,
-        "autocommit": True,
-        "use_pure": True,
+        "connect_timeout":    10,
+        "autocommit":         True,
+        "use_pure":           True,
     }
- 
-    @st.cache_data(ttl=60)            # refresh cache every 60 s
+
+    @st.cache_data(ttl=60)
     def fetch_patients():
-        """
-        Returns a DataFrame joining Pesakit -> Rekod_Kesihatan -> Laporan_Analisis,
-        matching the real 4-table schema (Pesakit, Rekod_Kesihatan, Laporan_Analisis, Pengguna).
-        Only the most recent record per patient/rekod is shown (1 row per id_rekod).
-        """
         import mysql.connector
         conn = mysql.connector.connect(**DB_CONFIG)
         query = """
@@ -1147,8 +959,8 @@ elif st.session_state.page == 'patient_list':
                 la.skor_glutathione AS `Glutathione Status`,
                 rk.tarikh_rekod     AS `Date`
             FROM Pesakit p
-            JOIN Rekod_Kesihatan rk   ON rk.id_pesakit = p.id_pesakit
-            JOIN Laporan_Analisis la  ON la.id_rekod   = rk.id_rekod
+            JOIN Rekod_Kesihatan rk  ON rk.id_pesakit = p.id_pesakit
+            JOIN Laporan_Analisis la ON la.id_rekod   = rk.id_rekod
             ORDER BY rk.tarikh_rekod DESC
         """
         import warnings
@@ -1157,28 +969,22 @@ elif st.session_state.page == 'patient_list':
             df = pd.read_sql(query, conn)
         conn.close()
         return df
- 
+
     def delete_patient_record(id_pesakit, id_rekod):
-        """
-        Deletes a patient's record across all 3 linked tables, in the correct
-        order to satisfy ON DELETE RESTRICT foreign key constraints:
-        Laporan_Analisis -> Rekod_Kesihatan -> Pesakit
-        """
         import mysql.connector
         conn = None
         try:
             conn = mysql.connector.connect(**DB_CONFIG)
             cursor = conn.cursor()
- 
+
             cursor.execute("DELETE FROM Laporan_Analisis WHERE id_rekod = %s", (id_rekod,))
             cursor.execute("DELETE FROM Rekod_Kesihatan WHERE id_rekod = %s", (id_rekod,))
- 
-            # Only delete the Pesakit row if they have no other health records left
+
             cursor.execute("SELECT COUNT(*) FROM Rekod_Kesihatan WHERE id_pesakit = %s", (id_pesakit,))
             remaining = cursor.fetchone()[0]
             if remaining == 0:
                 cursor.execute("DELETE FROM Pesakit WHERE id_pesakit = %s", (id_pesakit,))
- 
+
             conn.commit()
             cursor.close()
             return True, "Record deleted successfully."
@@ -1189,29 +995,26 @@ elif st.session_state.page == 'patient_list':
         finally:
             if conn and conn.is_connected():
                 conn.close()
- 
-    # ── UI ────────────────────────────────────────────────────────────────────
+
     try:
         import mysql.connector
         driver_available = True
     except ImportError:
         driver_available = False
- 
+
     col_status, col_refresh = st.columns([4, 1])
- 
     with col_status:
         if driver_available:
             st.markdown('<span class="db-status-badge db-connected">● MySQL Driver Installed</span>', unsafe_allow_html=True)
         else:
             st.markdown('<span class="db-status-badge db-disconnected">● mysql-connector-python not installed</span>', unsafe_allow_html=True)
             st.info("Run `pip install mysql-connector-python` and restart the app.")
- 
+
     with col_refresh:
         if st.button("🔄 Refresh", use_container_width=True):
             st.cache_data.clear()
             st.rerun()
- 
-    # Delete confirmation feedback (shown once after rerun)
+
     if "delete_status" in st.session_state and st.session_state.delete_status is not None:
         status, msg = st.session_state.delete_status
         if status == "success":
@@ -1219,17 +1022,16 @@ elif st.session_state.page == 'patient_list':
         else:
             st.error(f"❌ Failed to delete: {msg}")
         st.session_state.delete_status = None
- 
+
     st.markdown("<br>", unsafe_allow_html=True)
- 
+
     if driver_available:
         try:
             df_patients = fetch_patients()
- 
+
             if df_patients.empty:
                 st.info("No patient records found in the database.")
             else:
-                # ── Search / Filter Bar ──────────────────────────────────────
                 col_search, col_filter = st.columns([3, 1])
                 with col_search:
                     search_term = st.text_input(
@@ -1239,57 +1041,47 @@ elif st.session_state.page == 'patient_list':
                     )
                 with col_filter:
                     risk_filter = st.selectbox("Filter by Risk Level", ["All", "Low", "Medium", "High"])
- 
+
                 filtered = df_patients.copy()
- 
-                # "Contains" search — strips whitespace, case-insensitive, matches anywhere in name
+
                 if search_term and search_term.strip():
                     term = search_term.strip()
                     filtered = filtered[filtered["Name"].str.contains(term, case=False, na=False, regex=False)]
- 
-                # "Contains" filter for risk level too (covers "Low", "LOW RISK", etc.)
+
                 if risk_filter != "All":
                     filtered = filtered[filtered["Risk Level"].str.contains(risk_filter, case=False, na=False, regex=False)]
- 
+
                 st.markdown(f"**{len(filtered)} record(s) found**")
- 
-                # ── Format float columns to 2 decimal places ──────────────────
+
                 float_cols = ["BMI", "CRP", "IL-6", "VCAM-1", "Glutathione"]
                 display_df = filtered.copy()
                 for col in float_cols:
                     if col in display_df.columns:
                         display_df[col] = display_df[col].astype(float).round(2)
- 
-                # ── Colour-code Risk Level column ──────────────────────────────
+
                 def colour_risk(val):
                     val_upper = str(val).upper()
-                    if "HIGH" in val_upper:
-                        return "background-color:#ffe0e0; color:#c0392b; font-weight:600"
-                    if "MEDIUM" in val_upper:
-                        return "background-color:#fff3e0; color:#e67e22; font-weight:600"
-                    if "LOW" in val_upper:
-                        return "background-color:#e8f8f0; color:#27ae60; font-weight:600"
+                    if "HIGH"   in val_upper: return "background-color:#ffe0e0; color:#c0392b; font-weight:600"
+                    if "MEDIUM" in val_upper: return "background-color:#fff3e0; color:#e67e22; font-weight:600"
+                    if "LOW"    in val_upper: return "background-color:#e8f8f0; color:#27ae60; font-weight:600"
                     return ""
- 
+
                 def colour_status(val):
                     val_upper = str(val).upper()
-                    if val_upper in ("HIGH", "LOW"):
-                        return "color:#c0392b; font-weight:600"
-                    if val_upper == "NORMAL":
-                        return "color:#27ae60; font-weight:600"
+                    if val_upper in ("HIGH", "LOW"): return "color:#c0392b; font-weight:600"
+                    if val_upper == "NORMAL":        return "color:#27ae60; font-weight:600"
                     return ""
- 
+
                 status_cols = [c for c in ["CRP Status", "VCAM-1 Status", "IL-6 Status", "Glutathione Status"]
                                if c in display_df.columns]
- 
+
                 styled = display_df.style.map(colour_risk, subset=["Risk Level"]) \
-                                          .format({c: "{:.2f}" for c in float_cols if c in display_df.columns})
+                                         .format({c: "{:.2f}" for c in float_cols if c in display_df.columns})
                 if status_cols:
                     styled = styled.map(colour_status, subset=status_cols)
- 
+
                 st.dataframe(styled, use_container_width=True, hide_index=True)
- 
-                # ── Download as CSV ──────────────────────────────────────────
+
                 csv_data = display_df.to_csv(index=False).encode("utf-8")
                 st.download_button(
                     label="⬇️ Download as CSV",
@@ -1297,19 +1089,17 @@ elif st.session_state.page == 'patient_list':
                     file_name="pcad_patients.csv",
                     mime="text/csv",
                 )
- 
-                # ── Delete option per patient ──────────────────────────────────
+
                 st.markdown("<br>", unsafe_allow_html=True)
                 st.markdown("#### 🗑️ Delete a Record")
                 st.caption("Select a patient record below to permanently remove it from the database.")
- 
-                # Build readable options: "ID - Name (Date)"
+
                 filtered = filtered.reset_index(drop=True)
                 options = [
                     f"{row['ID']} — {row['Name']} ({pd.to_datetime(row['Date']).strftime('%Y-%m-%d')})"
                     for _, row in filtered.iterrows()
                 ]
- 
+
                 if options:
                     del_col1, del_col2 = st.columns([4, 1])
                     with del_col1:
@@ -1317,7 +1107,7 @@ elif st.session_state.page == 'patient_list':
                     with del_col2:
                         st.markdown("<br>", unsafe_allow_html=True)
                         confirm_delete = st.button("🗑️ Delete", type="primary", use_container_width=True)
- 
+
                     if confirm_delete:
                         selected_idx = options.index(selected_option)
                         selected_row = filtered.iloc[selected_idx]
@@ -1328,7 +1118,7 @@ elif st.session_state.page == 'patient_list':
                         st.session_state.delete_status = ("success" if success else "error", msg)
                         st.cache_data.clear()
                         st.rerun()
- 
+
         except Exception as e:
             st.error(f"❌ Could not connect to MySQL database.\n\n**Error:** `{e}`")
             st.markdown("""
