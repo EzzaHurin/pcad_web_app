@@ -299,7 +299,7 @@ with st.sidebar:
             st.rerun()
 
     st.markdown('<hr class="sidebar-divider">', unsafe_allow_html=True)
-    st.markdown('<div style="font-size:11px; color:#4a637a; text-align:center;">PCAD Risk System v2.0</div>', unsafe_allow_html=True)
+    st.markdown('<div style="font-size:11px; color:#fffff; text-align:center;">by Ezzahurin Ajemal</div>', unsafe_allow_html=True)
 # ── END SIDEBAR ──
 
 
