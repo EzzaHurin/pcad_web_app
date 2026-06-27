@@ -458,10 +458,10 @@ if st.session_state.page == 'main_menu':
     st.markdown("<br>", unsafe_allow_html=True)
 
     model_metrics = {
-        "Accuracy":  0.91,
-        "Precision": 0.88,
-        "Recall":    1.0,
-        "F1 Score":  0.93,
+        "Accuracy":  0.95,
+        "Precision": 0.96,
+        "Recall":    0.95,
+        "F1 Score":  0.95,
     }
 
     metric_colors = ["#28a745", "#3498db", "#e74c3c", "#f39c12"]
