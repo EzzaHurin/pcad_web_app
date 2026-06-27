@@ -4,6 +4,7 @@ import joblib
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+import bcrypt
 
 try:
     import shap
@@ -18,9 +19,77 @@ st.set_page_config(page_title="PCAD Risk Assessment", layout="wide")
 def local_css():
     st.markdown("""
     <style>
+    /* ---- MAIN PAGE BACKGROUND ---- */
+    .stApp {
+        background-color: #FFF5F7;
+    }
+    [data-testid="stAppViewContainer"] {
+        background-color: #FFF5F7;
+    }
+    [data-testid="stHeader"] {
+        background-color: #FFF5F7;
+    }
+/* ---- LOGIN PAGE STYLES ---- */
+    .login-card {
+        background: white;
+        border-radius: 16px;
+        padding: 36px 32px 28px 32px;
+        text-align: center;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+        max-width: 380px;
+        margin: 40px auto 24px auto;
+    }
+    .login-heart-icon {
+        font-size: 36px;
+        margin-bottom: 8px;
+    }
+    .login-title {
+        font-size: 19px;
+        font-weight: 800;
+        color: #00000;
+        line-height: 1.3;
+        margin: 8px 0 4px 0;
+    }
+    .login-subtitle {
+        font-size: 14px;
+        color: #888;
+        margin-top: 6px;
+    }
+    .login-form-container {
+        max-width: 460px;
+        margin: 0 auto;
+        background: rgba(255,255,255,0.5);
+        padding: 24px 28px;
+        border-radius: 12px;
+    }
+    div[data-testid="stForm"] {
+        max-width: 460px;
+        margin: 0 auto;
+        background: rgba(255,255,255,0.5);
+        border-radius: 12px;
+        border: none;
+        padding: 24px 28px;
+    }
+    div[data-testid="stForm"] button {
+        background-color: #ff4b4b;
+        color: white;
+        border: none;
+        font-weight: 600;
+    }
+    div[data-testid="stForm"] button:hover {
+        background-color: #e63e3e;
+        color: white;
+    }
+                
     /* ---- SIDEBAR STYLES ---- */
     [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #1a1f36 0%, #16213e 100%);
+        background: linear-gradient(
+    135deg,
+    #ff7aa2 0%,
+    #ff4d7d 45%,
+    #ff2d6f 75%,
+    #e91e63 100%
+);
     }
     [data-testid="stSidebar"] * { color: #e0e6f0 !important; }
 
@@ -64,7 +133,7 @@ def local_css():
         font-size: 10px;
         font-weight: 700;
         letter-spacing: 1.5px;
-        color: #6b82a6 !important;
+        color: #ffffff !important;
         text-transform: uppercase;
         padding: 4px 0 8px 0;
     }
@@ -197,15 +266,19 @@ def local_css():
 
 @st.cache_resource
 def load_assets():
+    import os
+    app_dir = os.path.dirname(os.path.abspath(__file__))
+    model_path = os.path.join(app_dir, 'pcad_model.pkl')
+    preproc_path = os.path.join(app_dir, 'preprocessor.pkl')
     try:
-        model = joblib.load('pcad_model.pkl')
-        preprocessor = joblib.load('preprocessor.pkl')
-        return model, preprocessor
-    except:
-        return None, None
-
-model, preprocessor = load_assets()
-
+        model = joblib.load(model_path)
+        preprocessor = joblib.load(preproc_path)
+        return model, preprocessor, None
+    except Exception as e:
+        return None, None, str(e)
+ 
+model, preprocessor, load_error = load_assets()
+ 
 # --- 2. SESSION STATE MANAGEMENT ---
 if 'page' not in st.session_state:
     st.session_state.page = 'main_menu'
@@ -217,17 +290,116 @@ if 'shap_input' not in st.session_state:
     st.session_state.shap_input = None      # raw (unscaled) DataFrame row
 if 'shap_scaled' not in st.session_state:
     st.session_state.shap_scaled = None     # preprocessed array row
-# Simulated logged-in user (replace with real auth as needed)
+if 'db_save_status' not in st.session_state:
+    st.session_state.db_save_status = None  # (status: 'success'/'error', message)
+if 'delete_status' not in st.session_state:
+    st.session_state.delete_status = None   # (status: 'success'/'error', message)
+if 'is_authenticated' not in st.session_state:
+    st.session_state.is_authenticated = False
 if 'logged_in_user' not in st.session_state:
-    st.session_state.logged_in_user = {'name': 'Dr. Ahmad Faris', 'role': 'Cardiologist'}
-
+    st.session_state.logged_in_user = None
+if 'login_error' not in st.session_state:
+    st.session_state.login_error = None
+ 
+ 
+# ── Authentication Function ─────────────────────────────────────────────────
+def authenticate_user(identifier, password):
+    """
+    Checks the given identifier (matches nama_staf OR emel) and password
+    against the Pengguna table. Password is verified using bcrypt.
+    Returns (success: bool, user_dict_or_error_message)
+    """
+    import mysql.connector
+    conn = None
+    try:
+        conn = mysql.connector.connect(
+            host=st.secrets["db_host"],
+            port=st.secrets["db_port"],
+            database=st.secrets["db_name"],
+            user=st.secrets["db_user"],
+            password=st.secrets["db_password"],
+            connection_timeout=10,
+        )
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute(
+            "SELECT id_staf, nama_staf, emel, kata_laluan FROM Pengguna "
+            "WHERE nama_staf = %s OR emel = %s LIMIT 1",
+            (identifier, identifier)
+        )
+        row = cursor.fetchone()
+        cursor.close()
+ 
+        if row is None:
+            return False, "Invalid username or password."
+ 
+        stored_hash = row["kata_laluan"]
+        try:
+            password_matches = bcrypt.checkpw(password.encode("utf-8"), stored_hash.encode("utf-8"))
+        except (ValueError, AttributeError):
+            # stored_hash isn't a valid bcrypt hash (e.g. still plaintext)
+            return False, "Account password is not set up correctly. Please contact admin."
+ 
+        if not password_matches:
+            return False, "Invalid username or password."
+ 
+        return True, {
+            "id_staf": row["id_staf"],
+            "name": row["nama_staf"],
+            "role": "Staff",
+        }
+ 
+    except Exception as e:
+        return False, f"Login failed: {e}"
+    finally:
+        if conn and conn.is_connected():
+            conn.close()
+ 
 local_css()
-
-# --- 3. SIDEBAR ---
+ 
+# ─────────────────────────────────────────────
+# LOGIN PAGE (shown when not authenticated)
+# ─────────────────────────────────────────────
+if not st.session_state.is_authenticated:
+    st.markdown("""
+        <div class="login-card">
+            <div class="login-heart-icon">❤️</div>
+            <div class="login-title">PCAD Risk Detection<br>and Classification<br>System</div>
+            <div class="login-subtitle">Log In</div>
+        </div>
+    """, unsafe_allow_html=True)
+ 
+    if st.session_state.login_error:
+        st.error(st.session_state.login_error)
+        st.session_state.login_error = None
+ 
+    with st.form("login_form"):
+        username = st.text_input("Username", placeholder="Enter staff name or email")
+        password = st.text_input("Password", type="password", placeholder="Enter password")
+        login_submit = st.form_submit_button("Log In", use_container_width=True)
+ 
+    if login_submit:
+        if not username or not password:
+            st.session_state.login_error = "Please enter both username and password."
+            st.rerun()
+        else:
+            success, result = authenticate_user(username.strip(), password)
+            if success:
+                st.session_state.is_authenticated = True
+                st.session_state.logged_in_user = result
+                st.session_state.page = 'main_menu'
+                st.rerun()
+            else:
+                st.session_state.login_error = result
+                st.rerun()
+ 
+    st.stop()  # Don't render anything below until logged in
+ 
+ 
+# --- 3. SIDEBAR (only shown when authenticated) ---
 with st.sidebar:
     user = st.session_state.logged_in_user
     initials = "".join([w[0].upper() for w in user['name'].split()[:2]])
-
+ 
     # User Card
     st.markdown(f"""
         <div class="sidebar-user-card">
@@ -236,20 +408,23 @@ with st.sidebar:
             <p class="sidebar-role">{user['role']}</p>
         </div>
     """, unsafe_allow_html=True)
-
+ 
     # Logout Button
     if st.button("🔓  Log Out", key="logout_btn", use_container_width=True):
+        st.session_state.is_authenticated = False
+        st.session_state.logged_in_user = None
         st.session_state.page = 'main_menu'
         st.session_state.patient_data = {}
         st.session_state.risk_result = {}
         st.rerun()
-
+ 
+ 
     st.markdown('<hr class="sidebar-divider">', unsafe_allow_html=True)
     st.markdown('<div class="nav-label">Navigation</div>', unsafe_allow_html=True)
-
+ 
     # Nav Buttons
     nav_items = [
-        ("🏠  Main Menu",        "main_menu"),
+        ("🏠  Homepage",        "main_menu"),
         ("🫀  Predict PCAD",     "form"),
         ("🗃️  Patient Data List", "patient_list"),
     ]
@@ -259,48 +434,82 @@ with st.sidebar:
         if st.button(btn_label, key=f"nav_{page_key}", use_container_width=True):
             st.session_state.page = page_key
             st.rerun()
-
+ 
     st.markdown('<hr class="sidebar-divider">', unsafe_allow_html=True)
     st.markdown('<div style="font-size:11px; color:#4a637a; text-align:center;">PCAD Risk System v2.0</div>', unsafe_allow_html=True)
-
-
+ 
 # ─────────────────────────────────────────────
-# PAGE: MAIN MENU (Dashboard Info)
+# PAGE: HOMEPAGE
 # ─────────────────────────────────────────────
 if st.session_state.page == 'main_menu':
-    st.markdown("## 🏠 Main Menu — Dashboard")
-    st.markdown("Welcome back, **{}**. Here's an overview of the PCAD Risk Assessment System.".format(
-        st.session_state.logged_in_user['name']))
+
+    # ══════════════════════════════════════════
+    # SECTION 1: ABOUT THIS SYSTEM
+    # ══════════════════════════════════════════
+    st.markdown("## 📌 About This System")
+    st.markdown(
+    f"Welcome back, **{st.session_state.logged_in_user['name']}**. Here's an overview of the PCAD Risk Prediction and Classification System."
+    )
+
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # Summary Metrics
-    m1, m2, m3, m4 = st.columns(4)
-    metrics = [
-        ("🫀", "3", "Total Biomarkers Tracked"),
-        ("📋", "11", "Input Parameters"),
-        ("⚠️", "3", "Risk Categories"),
-        ("🏥", "MySQL", "Patient DB Backend"),
-    ]
-    for col, (icon, val, label) in zip([m1, m2, m3, m4], metrics):
-        with col:
-            st.markdown(f"""
-                <div class="dash-metric-card">
-                    <div class="dash-metric-icon">{icon}</div>
-                    <div class="dash-metric-value">{val}</div>
-                    <div class="dash-metric-label">{label}</div>
-                </div>
-            """, unsafe_allow_html=True)
+    
+    st.markdown("""
+        <div class="info-card">
+        <h4>🎯 Purpose</h4>
+        <p>
+        This system predicts the risk level of Premature Coronary Artery Disease (PCAD)
+        using patient biomarkers and clinical data. It leverages a trained machine learning
+        model to classify patients into <b>Low</b>, <b>Medium</b>, or <b>High</b> risk categories.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Two-column layout
+    col_a, col_b = st.columns(2)
+
+    # Left Column
+    with col_a:
+        st.markdown("""
+        <div class="info-card">
+            <h4>🧪 Key Biomarkers Assessed</h4>
+            <p>
+            <b>CRP</b> — C-Reactive Protein (inflammation marker)<br>
+            <b>IL-6</b> — Interleukin-6 (cytokine inflammatory marker)<br>
+            <b>VCAM-1</b> — Vascular Cell Adhesion Molecule<br>
+            <b>Glutathione</b> — Antioxidant stress indicator
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+
+    with col_b:
+        st.markdown("""
+        <div class="info-card">
+            <h4>📊 Risk Classification</h4>
+            <p>
+                <span style="color:#28a745; font-weight:700;">● LOW RISK</span><br>
+                Biomarkers within healthy range.<br>
+                <span style="color:#ffa500; font-weight:700;">● MEDIUM RISK</span><br>
+                Some biomarkers are elevated and may require monitoring.<br>
+                <span style="color:#ff4b4b; font-weight:700;">● HIGH RISK</span><br>
+                Multiple biomarkers are elevated, indicating a higher likelihood of PCAD.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("---")
-    st.markdown("### 📊 Patient Data Dashboard")
+    # ══════════════════════════════════════════
+    # SECTION 2: DATA EXPLORATION
+    # ══════════════════════════════════════════
+    st.markdown("## 📊 Data Exploration")
+    st.markdown("Biomarker distributions from the patient dataset.")
+    st.markdown("<br>", unsafe_allow_html=True)
 
-    # ── Load data: try fixed path first, fallback to upload ───────────────────
-    # Path is relative to this script's location, so it works both locally
-    # and when deployed from GitHub (e.g. Streamlit Cloud).
     import os
     APP_DIR = os.path.dirname(os.path.abspath(__file__))
-    DEFAULT_DATA_PATH = os.path.join(APP_DIR, "patients.csv")
+    DEFAULT_DATA_PATH = os.path.join(APP_DIR, "data", "patients.csv")
 
     @st.cache_data(ttl=300)
     def load_dashboard_data(path):
@@ -311,166 +520,144 @@ if st.session_state.page == 'main_menu':
         dashboard_df = load_dashboard_data(DEFAULT_DATA_PATH)
         st.caption(f"📁 Data loaded from `data/patients.csv` — {len(dashboard_df)} records")
     except FileNotFoundError:
-        st.info("No file found at `data/patients.csv` in the repo. Upload a CSV/Excel file below to populate the dashboard.")
+        st.info("No file found at `data/patients.csv`. Upload a CSV/Excel file below to populate the dashboard.")
         uploaded = st.file_uploader("Upload patient data (CSV or Excel)", type=["csv", "xlsx"])
         if uploaded is not None:
-            if uploaded.name.endswith(".csv"):
-                dashboard_df = pd.read_csv(uploaded)
-            else:
-                dashboard_df = pd.read_excel(uploaded)
+            dashboard_df = pd.read_csv(uploaded) if uploaded.name.endswith(".csv") else pd.read_excel(uploaded)
 
     if dashboard_df is not None and not dashboard_df.empty:
         df = dashboard_df.copy()
 
-        # ── Expected columns (adjust names to match your actual file) ────────
-        # Risk_Level, Age, Gender, Smoking_Status, CRP, IL_6, VCAM_1, Glutathione
+        if "PCAD_Status" in df.columns:
+            df["PCAD_Label"] = df["PCAD_Status"].map({1: "Positive", 0: "Negative"})
 
-        # --- Row 1: Quick stat cards from real data ---
-        st.markdown("#### Overview")
-        s1, s2, s3, s4 = st.columns(4)
-        with s1:
-            st.metric("Total Patients", len(df))
-        with s2:
-            if "Age" in df.columns:
-                st.metric("Average Age", f"{df['Age'].mean():.1f} yrs")
-        with s3:
-            if "Risk_Level" in df.columns:
-                high_pct = (df["Risk_Level"].astype(str).str.upper().str.contains("HIGH")).mean() * 100
-                st.metric("High Risk %", f"{high_pct:.1f}%")
-        with s4:
-            if "Smoking_Status" in df.columns:
-                smoker_pct = (df["Smoking_Status"].astype(str).str.upper().str.contains("SMOK") |
-                              (df["Smoking_Status"] == 1)).mean() * 100
-                st.metric("Smokers %", f"{smoker_pct:.1f}%")
-
-        st.markdown("<br>", unsafe_allow_html=True)
-
-        # --- Row 2: Risk distribution + Demographics ---
-        col_chart1, col_chart2 = st.columns(2)
-
-        with col_chart1:
-            st.markdown("**Risk Level Distribution**")
-            if "Risk_Level" in df.columns:
-                risk_counts = df["Risk_Level"].value_counts()
-                fig1, ax1 = plt.subplots(figsize=(5, 4))
-                colors_map = {"Low": "#28a745", "Medium": "#ffa500", "High": "#ff4b4b",
-                              "LOW": "#28a745", "MEDIUM": "#ffa500", "HIGH": "#ff4b4b",
-                              "LOW RISK": "#28a745", "MEDIUM RISK": "#ffa500", "HIGH RISK": "#ff4b4b"}
-                bar_colors = [colors_map.get(str(x), "#888888") for x in risk_counts.index]
-                ax1.bar(risk_counts.index.astype(str), risk_counts.values, color=bar_colors, edgecolor='white')
-                ax1.set_ylabel("Number of Patients")
-                ax1.set_title("Patients by Risk Category", fontsize=11, fontweight='bold')
-                for i, v in enumerate(risk_counts.values):
-                    ax1.text(i, v + 0.3, str(v), ha='center', fontsize=9, fontweight='bold')
-                fig1.tight_layout()
-                st.pyplot(fig1)
-                plt.close(fig1)
-            else:
-                st.caption("Column 'Risk_Level' not found in data.")
-
-        with col_chart2:
-            st.markdown("**Age Distribution**")
-            if "Age" in df.columns:
-                fig2, ax2 = plt.subplots(figsize=(5, 4))
-                ax2.hist(df["Age"].dropna(), bins=10, color="#4b8bff", edgecolor='white')
-                ax2.set_xlabel("Age")
-                ax2.set_ylabel("Number of Patients")
-                ax2.set_title("Patient Age Distribution", fontsize=11, fontweight='bold')
-                fig2.tight_layout()
-                st.pyplot(fig2)
-                plt.close(fig2)
-            else:
-                st.caption("Column 'Age' not found in data.")
-
-        st.markdown("<br>", unsafe_allow_html=True)
-
-        # --- Row 3: Biomarker averages by risk level ---
-        st.markdown("**Average Biomarker Levels by Risk Category**")
+        # Biomarker distribution charts
         biomarker_cols = [c for c in ["CRP", "IL_6", "VCAM_1", "Glutathione"] if c in df.columns]
-        if biomarker_cols and "Risk_Level" in df.columns:
-            avg_bio = df.groupby("Risk_Level")[biomarker_cols].mean().round(2)
-            fig3, ax3 = plt.subplots(figsize=(9, 4))
-            avg_bio.plot(kind="bar", ax=ax3, edgecolor='white')
-            ax3.set_ylabel("Average Level")
-            ax3.set_title("Biomarker Averages per Risk Group", fontsize=11, fontweight='bold')
-            ax3.legend(title="Biomarker", fontsize=8, title_fontsize=9, loc='upper left', bbox_to_anchor=(1.0, 1.0))
-            fig3.tight_layout()
-            st.pyplot(fig3)
-            plt.close(fig3)
+
+        if biomarker_cols:
+            st.markdown("**Distribution of Key Biomarkers**")
+
+            # Row 1: CRP and IL_6
+            row1_cols = st.columns(2)
+            biomarker_colors = {
+                "CRP":         "#e74c3c",
+                "IL_6":        "#3498db",
+                "VCAM_1":      "#2ecc71",
+                "Glutathione": "#f39c12",
+            }
+            biomarker_labels = {
+                "CRP":         "CRP (mg/L)",
+                "IL_6":        "IL-6 (pg/mL)",
+                "VCAM_1":      "VCAM-1 (ng/mL)",
+                "Glutathione": "Glutathione (μmol/L)",
+            }
+
+            for idx, biomarker in enumerate(biomarker_cols):
+                col = row1_cols[idx % 2]
+                with col:
+                    st.markdown(f"**{biomarker_labels.get(biomarker, biomarker)} Distribution**")
+                    fig, ax = plt.subplots(figsize=(5, 3.5))
+
+                    if "PCAD_Label" in df.columns:
+                        # Overlay histogram by PCAD status
+                        for label, color in [("Negative", "#28a745"), ("Positive", "#ff4b4b")]:
+                            subset = df[df["PCAD_Label"] == label][biomarker].dropna()
+                            ax.hist(subset, bins=15, alpha=0.6, label=label, color=color, edgecolor='white')
+                        ax.legend(title="PCAD Status", fontsize=8)
+                    else:
+                        ax.hist(df[biomarker].dropna(), bins=15,
+                                color=biomarker_colors.get(biomarker, "#4b8bff"), edgecolor='white')
+
+                    ax.set_xlabel(biomarker_labels.get(biomarker, biomarker), fontsize=9)
+                    ax.set_ylabel("Number of Patients", fontsize=9)
+                    ax.set_title(f"{biomarker_labels.get(biomarker, biomarker)} Distribution",
+                                 fontsize=10, fontweight='bold')
+                    fig.tight_layout()
+                    st.pyplot(fig)
+                    plt.close(fig)
+
+                    # Show basic stats below each chart
+                    stats = df[biomarker].describe()
+                    st.caption(
+                        f"Mean: {stats['mean']:.2f} | Std: {stats['std']:.2f} | "
+                        f"Min: {stats['min']:.2f} | Max: {stats['max']:.2f}"
+                    )
+
+                # Insert a spacer column row after every 2 charts
+                if idx % 2 == 1 and idx < len(biomarker_cols) - 1:
+                    st.markdown("<br>", unsafe_allow_html=True)
+                    row1_cols = st.columns(2)
+
         else:
-            st.caption("Need 'Risk_Level' and biomarker columns (CRP, IL_6, VCAM_1, Glutathione) for this chart.")
+            st.warning("Biomarker columns (CRP, IL_6, VCAM_1, Glutathione) not found in the dataset.")
 
-        # --- Row 4: Gender breakdown ---
-        if "Gender" in df.columns:
-            st.markdown("**Gender Breakdown**")
-            gender_counts = df["Gender"].value_counts()
-            g1, g2 = st.columns([1, 2])
-            with g1:
-                fig4, ax4 = plt.subplots(figsize=(4, 4))
-                ax4.pie(gender_counts.values, labels=gender_counts.index.astype(str),
-                        autopct='%1.1f%%', colors=['#4b8bff', '#ff9ec5', '#cccccc'], startangle=90)
-                ax4.set_title("Gender Distribution", fontsize=10, fontweight='bold')
-                st.pyplot(fig4)
-                plt.close(fig4)
-            with g2:
-                st.dataframe(gender_counts.reset_index().rename(
-                    columns={"index": "Gender", "Gender": "Count"}), use_container_width=True, hide_index=True)
-
-        # --- Raw data viewer ---
         with st.expander("📋 View Raw Data Table"):
             st.dataframe(df, use_container_width=True, hide_index=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("### 📌 About This System")
+    st.markdown("---")
 
-    col_a, col_b = st.columns(2)
-    with col_a:
-        st.markdown("""
-            <div class="info-card">
-                <h4>🎯 Purpose</h4>
-                <p>This system predicts the risk level of Premature Coronary Artery Disease (PCAD) 
-                using patient biomarkers and clinical data. It leverages a trained machine learning 
-                model to classify patients into Low, Medium, or High risk categories.</p>
-            </div>
-        """, unsafe_allow_html=True)
-        st.markdown("""
-            <div class="info-card">
-                <h4>🔬 Key Biomarkers Assessed</h4>
-                <p><b>CRP</b> — C-Reactive Protein (inflammation marker)<br>
-                <b>IL-6</b> — Interleukin-6 (cytokine inflammatory marker)<br>
-                <b>VCAM-1</b> — Vascular Cell Adhesion Molecule<br>
-                <b>Glutathione</b> — Antioxidant stress indicator</p>
-            </div>
-        """, unsafe_allow_html=True)
+    # ══════════════════════════════════════════
+    # SECTION 3: MODEL PERFORMANCE
+    # ══════════════════════════════════════════
+    st.markdown("## ⚙️ Model Performance")
+    st.markdown("Evaluation metrics of the trained PCAD risk classification model for High Risk.")
+    st.markdown("<br>", unsafe_allow_html=True)
 
-    with col_b:
-        st.markdown("""
-            <div class="info-card">
-                <h4>📊 Risk Classification</h4>
-                <p>
-                <span style="color:#28a745; font-weight:700;">● LOW RISK</span> — Score ~15: Biomarkers within healthy range.<br><br>
-                <span style="color:#ffa500; font-weight:700;">● MEDIUM RISK</span> — Score ~50: Some biomarkers elevated; lifestyle changes advised.<br><br>
-                <span style="color:#ff4b4b; font-weight:700;">● HIGH RISK</span> — Score ~85: Multiple markers elevated; urgent cardiology consult recommended.
-                </p>
-            </div>
-        """, unsafe_allow_html=True)
-        st.markdown("""
-            <div class="info-card">
-                <h4>🚀 Quick Actions</h4>
-                <p>Use the sidebar to navigate between pages:</p>
-                <p>→ <b>Predict PCAD</b> to enter new patient data<br>
-                → <b>Patient Data List</b> to browse records from the database</p>
-            </div>
-        """, unsafe_allow_html=True)
+    # ── Option A: Load pre-computed metrics from a JSON/dict (recommended) ──
+    # Replace these values with your actual model evaluation results.
+    # You can save them from your training script with json.dump() and load here,
+    # or simply hard-code the final numbers after training.
+    model_metrics = {
+        "Accuracy":  0.91,   # ← replace with your real value
+        "Precision": 0.88,   # ← replace with your real value
+        "Recall":    1.0,   # ← replace with your real value
+        "F1 Score":  0.93,  # ← replace with your real value
+    }
 
+    # ── Optional: load from a saved JSON file ──────────────────────────────
+    # import json
+    # METRICS_PATH = os.path.join(APP_DIR, "data", "model_metrics.json")
+    # try:
+    #     with open(METRICS_PATH) as f:
+    #         model_metrics = json.load(f)
+    # except FileNotFoundError:
+    #     pass  # fall back to hard-coded values above
+
+    metric_colors  = ["#28a745", "#3498db", "#e74c3c", "#f39c12"]
+    metric_icons   = ["✅", "🎯", "🔍", "⚖️"]
+    metric_names   = list(model_metrics.keys())
+    metric_values  = list(model_metrics.values())
+
+    # ── Metric cards ───────────────────────────────────────────────────────
+    perf_cols = st.columns(4)
+    for col, name, value, color, icon in zip(perf_cols, metric_names, metric_values,
+                                              metric_colors, metric_icons):
+        with col:
+            st.markdown(f"""
+                <div class="dash-metric-card" style="border-top: 4px solid {color};">
+                    <div class="dash-metric-icon">{icon}</div>
+                    <div class="dash-metric-value" style="color:{color};">{value*100:.1f}%</div>
+                    <div class="dash-metric-label">{name}</div>
+                </div>
+            """, unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+
+    # ── Metric interpretation guide ────────────────────────────────────────
+    st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("""
-        <div class="disclaimer-box">
-            <b>⚕️ Medical Disclaimer:</b> This system is a clinical decision-support tool only. 
-            All risk predictions must be reviewed and confirmed by a qualified cardiologist before 
-            any clinical action is taken.
+        <div class="info-card">
+            <h4>📖 Metric Definitions</h4>
+            <p>
+            <b>Accuracy</b> — Overall proportion of correct predictions (TP + TN) / Total.<br>
+            <b>Precision</b> — Of all patients predicted PCAD Positive, how many truly are? Minimises false alarms.<br>
+            <b>Recall (Sensitivity)</b> — Of all true PCAD Positive patients, how many did the model catch? Minimises missed cases.<br>
+            <b>F1 Score</b> — Harmonic mean of Precision and Recall; balanced metric for imbalanced classes.
+            </p>
         </div>
     """, unsafe_allow_html=True)
-
 
 # ─────────────────────────────────────────────
 # PAGE: PREDICT PCAD (Patient Data Entry)
@@ -478,10 +665,121 @@ if st.session_state.page == 'main_menu':
 elif st.session_state.page == 'form':
     st.markdown("## 🫀 Predict PCAD — Patient Data Entry")
     st.write("Enter the patient's clinical data below to generate a risk classification.")
-
+ 
+    # ── MySQL Save Function ────────────────────────────────────────────────
+    DB_CONFIG = {
+        "host":     st.secrets["db_host"],
+        "port":     st.secrets["db_port"],
+        "database": st.secrets["db_name"],
+        "user":     st.secrets["db_user"],
+        "password": st.secrets["db_password"],
+        "connection_timeout": 10,
+        "autocommit": False,
+    }
+ 
+    def get_or_create_default_staff(cursor):
+        """
+        Ensures a valid id_staf exists before inserting Rekod_Kesihatan.
+        Returns an existing id_staf if any row exists in Pengguna,
+        otherwise creates a default staff record and returns its new id_staf.
+        """
+        cursor.execute("SELECT id_staf FROM Pengguna ORDER BY id_staf LIMIT 1")
+        row = cursor.fetchone()
+        if row:
+            return row[0]
+ 
+        # No staff exists yet — create a default one
+        cursor.execute(
+            "INSERT INTO Pengguna (nama_staf, emel, kata_laluan) VALUES (%s, %s, %s)",
+            ("Default Staff", "default.staff@ukm.edu.my", "changeme")
+        )
+        return cursor.lastrowid
+ 
+    # ── Biomarker thresholds (same as used on the result page) ────────────
+    # Returns "High"/"Normal" normally, or "Low"/"Normal" for reverse biomarkers
+    # (e.g. Glutathione, where a LOW value is the concerning one).
+    def get_biomarker_status(value, threshold, is_reverse=False):
+        is_bad = (value < threshold) if is_reverse else (value > threshold)
+        if is_reverse:
+            return "Low" if is_bad else "Normal"
+        return "High" if is_bad else "Normal"
+ 
+    def save_prediction_to_db(name, age, gender, bmi, smoking, lipid, renal, liver,
+                               crp, vcam1, il6, glutathione, id_kluster, keputusan_risiko,
+                               id_staf=None):
+        """
+        Inserts a full prediction record across the 3 linked tables:
+        Pesakit -> Rekod_Kesihatan -> Laporan_Analisis
+        Returns (success: bool, message: str)
+        """
+        import mysql.connector
+        conn = None
+        try:
+            conn = mysql.connector.connect(**DB_CONFIG)
+            cursor = conn.cursor()
+ 
+            # Resolve a valid id_staf (use provided one, else fetch/create default)
+            if id_staf is None:
+                id_staf = get_or_create_default_staff(cursor)
+ 
+            # 1. Insert into Pesakit
+            jantina = "Lelaki" if gender == 1 else "Perempuan"
+            cursor.execute(
+                "INSERT INTO Pesakit (nama_pesakit, umur, jantina) VALUES (%s, %s, %s)",
+                (name, age, jantina)
+            )
+            id_pesakit = cursor.lastrowid
+ 
+            # 2. Insert into Rekod_Kesihatan
+            cursor.execute(
+                """INSERT INTO Rekod_Kesihatan
+                   (id_staf, id_pesakit, umur, bmi, status_merokok, profil_lipid,
+                    profil_renal, profil_hati, crp_level, vcam1_level, il6_level, glutathione)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+                (id_staf, id_pesakit, age, bmi, smoking, lipid, renal, liver,
+                 crp, vcam1, il6, glutathione)
+            )
+            id_rekod = cursor.lastrowid
+ 
+            # 3. Insert into Laporan_Analisis (status labels, not raw values)
+            status_crp         = get_biomarker_status(crp, 3.0)
+            status_vcam1       = get_biomarker_status(vcam1, 500)
+            status_il6         = get_biomarker_status(il6, 5.0)
+            status_glutathione = get_biomarker_status(glutathione, 4.0, is_reverse=True)
+ 
+            cursor.execute(
+                """INSERT INTO Laporan_Analisis
+                   (id_rekod, id_kluster, keputusan_risiko,
+                    skor_crp, skor_vcam1, skor_il6, skor_glutathione)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s)""",
+                (id_rekod, id_kluster, keputusan_risiko,
+                 status_crp, status_vcam1, status_il6, status_glutathione)
+            )
+ 
+            conn.commit()
+ 
+            # Verify the row actually exists after commit (sanity check)
+            cursor.execute("SELECT COUNT(*) FROM Pesakit WHERE id_pesakit = %s", (id_pesakit,))
+            verify_count = cursor.fetchone()[0]
+ 
+            cursor.execute("SELECT DATABASE()")
+            current_db = cursor.fetchone()[0]
+ 
+            cursor.close()
+            return True, (f"Patient ID: {id_pesakit}, Record ID: {id_rekod} | "
+                           f"Verified rows in Pesakit: {verify_count}")
+ 
+        except Exception as e:
+            if conn:
+                conn.rollback()
+            return False, str(e)
+        finally:
+            if conn and conn.is_connected():
+                conn.close()
+ 
     with st.form("prediction_form"):
         name = st.text_input("Patient Full Name", value="John Doe")
-
+ 
         col1, col2 = st.columns(2)
         with col1:
             age = st.number_input("Age", min_value=1, max_value=120, value=50)
@@ -496,16 +794,16 @@ elif st.session_state.page == 'form':
             lipid = st.number_input("Lipid Profile", value=200.0)
             renal = st.number_input("Renal Profile", value=1.0)
             liver = st.number_input("Liver Profile", value=35.0)
-
+ 
         submit = st.form_submit_button("Predict Risk Level", use_container_width=True, type="primary")
-
+ 
     if submit:
         input_data = pd.DataFrame(
             [[age, bmi, gender, smoking, crp, il6, vcam, glutathione, lipid, renal, liver]],
             columns=['Age', 'BMI', 'Gender', 'Smoking_Status', 'CRP', 'IL_6',
                      'VCAM_1', 'Glutathione', 'Lipid_Profile', 'Renal_Profile', 'Liver_Profile']
         )
-
+ 
         if model is not None and preprocessor is not None:
             data_scaled = preprocessor.transform(input_data)
             prediction = model.predict(data_scaled)[0]
@@ -513,9 +811,9 @@ elif st.session_state.page == 'form':
             st.session_state.shap_scaled = data_scaled
         else:
             # Demo fallback when model files are missing
-            st.warning("⚠️ Model files not found. Showing demo result.")
+            st.warning(f"⚠️ Model files not found. Showing demo result. Error: `{load_error}`")
             prediction = 'High'
-
+ 
         res_map = {
             'High':   {'label': 'HIGH RISK',   'color': '#ff4b4b', 'degree': '300deg', 'score': 85},
             2:        {'label': 'HIGH RISK',   'color': '#ff4b4b', 'degree': '300deg', 'score': 85},
@@ -524,27 +822,58 @@ elif st.session_state.page == 'form':
             'Low':    {'label': 'LOW RISK',    'color': '#28a745', 'degree': '60deg',  'score': 15},
             0:        {'label': 'LOW RISK',    'color': '#28a745', 'degree': '60deg',  'score': 15},
         }
-
+ 
         st.session_state.patient_data = {
             'name': name, 'age': age, 'bmi': bmi,
             'smoking': "Smoker" if smoking == 1 else "Non-Smoker",
             'crp': crp, 'il6': il6, 'vcam': vcam, 'glutathione': glutathione
         }
         st.session_state.risk_result = res_map.get(prediction, res_map['Low'])
+ 
+        # ── Save to MySQL database ──────────────────────────────────────────
+        id_kluster_map  = {'Low': 0, 'Medium': 1, 'High': 2, 0: 0, 1: 1, 2: 2}
+        risiko_label_map = {'Low': 'Low', 'Medium': 'Medium', 'High': 'High', 0: 'Low', 1: 'Medium', 2: 'High'}
+        id_kluster        = id_kluster_map.get(prediction, 0)
+        keputusan_risiko  = risiko_label_map.get(prediction, 'Low')
+ 
+        try:
+            success, msg = save_prediction_to_db(
+                name=name, age=age, gender=gender, bmi=bmi, smoking=smoking,
+                lipid=lipid, renal=renal, liver=liver,
+                crp=crp, vcam1=vcam, il6=il6, glutathione=glutathione,
+                id_kluster=id_kluster, keputusan_risiko=keputusan_risiko
+            )
+            if success:
+                st.session_state.db_save_status = ("success", msg)
+            else:
+                st.session_state.db_save_status = ("error", msg)
+        except Exception as e:
+            st.session_state.db_save_status = ("error", str(e))
+ 
         st.session_state.page = 'result'
         st.rerun()
-
-
+ 
+ 
 # ─────────────────────────────────────────────
 # PAGE: RESULT DASHBOARD
 # ─────────────────────────────────────────────
 elif st.session_state.page == 'result':
     data = st.session_state.patient_data
     res  = st.session_state.risk_result
-
+ 
     st.markdown("## ❤️ CAD Risk Assessment Results")
+ 
+    # ── Database save confirmation banner ───────────────────────────────────
+    if st.session_state.db_save_status is not None:
+        status, msg = st.session_state.db_save_status
+        if status == "success":
+            st.success(f"✅ Patient record saved to database. {msg}")
+        else:
+            st.error(f"❌ Failed to save to database: {msg}")
+        st.session_state.db_save_status = None  # show only once
+ 
     st.markdown("<br>", unsafe_allow_html=True)
-
+ 
     # Patient Banner
     st.markdown(f"""
         <div class="patient-banner">
@@ -555,36 +884,45 @@ elif st.session_state.page == 'result':
             <div class="banner-item"><label>SMOKING</label><span>{data['smoking']}</span></div>
         </div>
     """, unsafe_allow_html=True)
-
+ 
     left_col, right_col = st.columns([1, 2])
-
+ 
     with left_col:
+        # Split label into two lines for cleaner centering (e.g. "HIGH" / "RISK")
+        label_parts = res['label'].split(' ')
+        label_line1 = label_parts[0] if len(label_parts) > 0 else res['label']
+        label_line2 = ' '.join(label_parts[1:]) if len(label_parts) > 1 else ''
+ 
         st.markdown(f"""
             <div class="risk-card">
                 <div style="font-weight:600; color:#555;">PREMATURE CAD RISK</div>
                 <div class="donut-outer" style="--risk-color: {res['color']}; --risk-degree: {res['degree']};">
                     <div class="donut-inner">
-                        <div class="risk-score-text" style="color: {res['color']}">{res['score']}</div>
-                        <div style="color:#888; font-size:14px;">/ 100</div>
+                        <div class="risk-score-text" style="color: {res['color']}; font-size: 22px; line-height: 1.2;">{label_line1}</div>
+                        <div style="color: {res['color']}; font-size: 16px; font-weight: bold;">{label_line2}</div>
                     </div>
-                </div>
-                <div class="risk-label-box" style="color: {res['color']}; background: {res['color']}20;">
-                    {res['label']}
                 </div>
             </div>
         """, unsafe_allow_html=True)
-
+ 
     with right_col:
         st.markdown('<h6>🕒 BIOMARKER ANALYSIS</h6>', unsafe_allow_html=True)
-
+ 
         def get_bio_html(label, value, unit, threshold, is_reverse=False):
             is_bad = (value < threshold) if is_reverse else (value > threshold)
-            status_text  = "High"   if is_bad else "Normal"
+ 
+            # For reverse biomarkers (like Glutathione), "bad" means LOW, not HIGH.
+            # Show "Low" as the status text in that case so it isn't misleading.
+            if is_reverse:
+                status_text = "Low" if is_bad else "Normal"
+            else:
+                status_text = "High" if is_bad else "Normal"
             status_class = "status-high" if is_bad else "status-normal"
+ 
             desc = "Levels are within range."
             if label == "CRP"        and is_bad: desc = "Indicates systemic inflammation."
             elif label == "VCAM-1"   and is_bad: desc = "Endothelial dysfunction detected."
-            elif label == "Glutathione" and is_bad: desc = "Depleted antioxidants increase stress."
+            elif label == "Glutathione" and is_bad: desc = "Depleted antioxidants increase oxidative stress."
             elif not is_bad: desc = "Within healthy clinical range."
             return f"""
                 <div class="bio-card">
@@ -594,43 +932,49 @@ elif st.session_state.page == 'result':
                     <div class="{status_class}">{status_text}</div>
                 </div>
             """
-
+ 
         r1a, r1b = st.columns(2)
         with r1a: st.markdown(get_bio_html("CRP",    data['crp'],         "mg/L",   3.0),          unsafe_allow_html=True)
         with r1b: st.markdown(get_bio_html("IL-6",   data['il6'],         "pg/mL",  5.0),          unsafe_allow_html=True)
         r2a, r2b = st.columns(2)
         with r2a: st.markdown(get_bio_html("VCAM-1", data['vcam'],        "ng/mL",  500),          unsafe_allow_html=True)
         with r2b: st.markdown(get_bio_html("Glutathione", data['glutathione'], "mmol/L", 4.0, True), unsafe_allow_html=True)
-
+ 
+        st.caption(
+            "ℹ️ Note: Glutathione works in reverse — a **Low** result (below the healthy threshold) "
+            "is the concerning sign, since glutathione is an antioxidant that *protects* against "
+            "cardiovascular stress. Lower levels mean weaker antioxidant defence."
+        )
+ 
     st.markdown("""
         <div class="disclaimer-box">
             <b>⚕️ Medical Disclaimer:</b> This assessment is for informational purposes only.
             It should not replace professional medical diagnosis. Please consult with a cardiologist.
         </div>
     """, unsafe_allow_html=True)
-
+ 
     # ── SHAP ANALYSIS SECTION ─────────────────────────────────────────────────
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("---")
     st.markdown("### 🔍 AI Explanation — Why This Risk Level?")
     st.markdown("SHAP (SHapley Additive exPlanations) shows **which features pushed the prediction** toward or away from the predicted risk class.")
-
+ 
     if not SHAP_AVAILABLE:
         st.warning("⚠️ SHAP library not installed. Run `pip install shap` and restart.")
-
+ 
     elif model is None or preprocessor is None:
         st.info("ℹ️ SHAP analysis requires the trained model files (`pcad_model.pkl` and `preprocessor.pkl`).")
-
+ 
     elif st.session_state.shap_scaled is None:
         st.info("ℹ️ Submit patient data first to see the SHAP explanation.")
-
+ 
     else:
         feature_names = [
             'Age', 'BMI', 'Gender', 'Smoking Status',
             'CRP', 'IL-6', 'VCAM-1', 'Glutathione',
             'Lipid Profile', 'Renal Profile', 'Liver Profile'
         ]
-
+ 
         @st.cache_resource
         def get_shap_explainer(_mdl):
             try:
@@ -640,11 +984,11 @@ elif st.session_state.page == 'result':
                     return shap.Explainer(_mdl), "generic"
                 except Exception as e:
                     return None, str(e)
-
+ 
         with st.spinner("Calculating SHAP values..."):
             try:
                 explainer, exp_type = get_shap_explainer(model)
-
+ 
                 if explainer is None:
                     st.warning(f"Could not build SHAP explainer: {exp_type}")
                 else:
@@ -653,13 +997,13 @@ elif st.session_state.page == 'result':
                     class_idx_map = {"LOW RISK": 0, "MEDIUM RISK": 1, "HIGH RISK": 2}
                     class_idx     = class_idx_map.get(pred_label, 0)
                     n_classes     = len(class_idx_map)
-
+ 
                     if exp_type == "tree":
                         raw_shap = explainer.shap_values(st.session_state.shap_scaled)
                     else:
                         exp_obj  = explainer(st.session_state.shap_scaled)
                         raw_shap = exp_obj.values
-
+ 
                     # normalise to 1-D float array for the predicted class
                     if isinstance(raw_shap, list):
                         elem = np.array(raw_shap[class_idx], dtype=float)
@@ -679,24 +1023,24 @@ elif st.session_state.page == 'result':
                                 sv = arr[0, 0, :]
                         else:
                             sv = arr.flatten()
-
+ 
                     sv = sv.astype(float)
-
+ 
                 # ── Tab layout ───────────────────────────────────────────────
                     tab1, tab2, tab3 = st.tabs(["Waterfall Chart", "Bar Chart", "Feature Table"])
-
+ 
                     # TAB 1: Waterfall
                     with tab1:
                         st.markdown("**Waterfall chart** — each bar shows how much a feature increased (red) or decreased (blue) the risk score.")
-
+ 
                         sorted_idx  = np.argsort(np.abs(sv))[::-1]
                         top_n       = min(11, len(sorted_idx))
                         idx_top     = sorted_idx[:top_n][::-1]
-
+ 
                         feat_labels = [f"{feature_names[i]}\n= {raw_vals[i]:.2f}" for i in idx_top]
                         values      = sv[idx_top]
                         colors      = ['#ff4b4b' if v > 0 else '#4b8bff' for v in values]
-
+ 
                         fig_wf, ax_wf = plt.subplots(figsize=(9, 5))
                         bars = ax_wf.barh(range(len(values)), values, color=colors, edgecolor='white', height=0.6)
                         ax_wf.set_yticks(range(len(values)))
@@ -715,7 +1059,7 @@ elif st.session_state.page == 'result':
                         fig_wf.tight_layout()
                         st.pyplot(fig_wf)
                         plt.close(fig_wf)
-
+ 
                     # TAB 2: Bar chart
                     with tab2:
                         st.markdown("**Bar chart** — absolute SHAP value per feature; longer bar = more influential.")
@@ -735,7 +1079,7 @@ elif st.session_state.page == 'result':
                         fig_bar.tight_layout()
                         st.pyplot(fig_bar)
                         plt.close(fig_bar)
-
+ 
                     # TAB 3: Table
                     with tab3:
                         st.markdown("**Detailed breakdown** of SHAP values per feature.")
@@ -746,43 +1090,34 @@ elif st.session_state.page == 'result':
                             'Direction':     ['Up - Increases Risk' if v > 0 else 'Down - Decreases Risk' for v in sv],
                             '|Impact|':      [round(abs(float(v)), 4) for v in sv],
                         }).sort_values('|Impact|', ascending=False).reset_index(drop=True)
-
+ 
                         def highlight_direction(val):
                             if 'Up' in str(val):   return 'color: #c0392b; font-weight: 600'
                             if 'Down' in str(val): return 'color: #27ae60; font-weight: 600'
                             return ''
-
+ 
                         styled_shap = shap_df.style.map(highlight_direction, subset=['Direction'])
                         st.dataframe(styled_shap, use_container_width=True, hide_index=True)
                         csv_shap = shap_df.to_csv(index=False).encode('utf-8')
                         st.download_button("Download SHAP Table", csv_shap, "shap_analysis.csv", "text/csv")
-
+ 
             except Exception as e:
                 st.error(f"SHAP calculation failed: `{e}`")
-
+ 
     st.markdown("<br>", unsafe_allow_html=True)
     if st.button("🔄 Update Patient Data", type="primary", use_container_width=True):
         st.session_state.page = 'form'
         st.rerun()
-
-
+ 
+ 
 # ─────────────────────────────────────────────
 # PAGE: PATIENT DATA LIST (MySQL)
 # ─────────────────────────────────────────────
 elif st.session_state.page == 'patient_list':
     st.markdown("## 🗃️ Patient Data List")
     st.markdown("Patient records loaded from the MySQL database.")
-
+ 
     # ── MySQL Connection (credentials pulled from Streamlit Secrets) ──────────
-    # Set these in: Streamlit Cloud → App → Settings → Secrets
-    # (or locally in .streamlit/secrets.toml)
-    #
-    #   db_host     = "your_host"
-    #   db_port     = 3306
-    #   db_name     = "pcad_db"
-    #   db_user     = "root"
-    #   db_password = "your_actual_password"
-    #
     DB_CONFIG = {
         "host":     st.secrets["db_host"],
         "port":     st.secrets["db_port"],
@@ -794,109 +1129,225 @@ elif st.session_state.page == 'patient_list':
         "autocommit": True,
         "use_pure": True,
     }
-
+ 
     @st.cache_data(ttl=60)            # refresh cache every 60 s
     def fetch_patients():
         """
-        Returns a DataFrame of all patient records.
-        Adjust the query / column names to match your actual table schema.
+        Returns a DataFrame joining Pesakit -> Rekod_Kesihatan -> Laporan_Analisis,
+        matching the real 4-table schema (Pesakit, Rekod_Kesihatan, Laporan_Analisis, Pengguna).
+        Only the most recent record per patient/rekod is shown (1 row per id_rekod).
         """
         import mysql.connector
         conn = mysql.connector.connect(**DB_CONFIG)
         query = """
             SELECT
-                patient_id   AS `ID`,
-                full_name    AS `Name`,
-                age          AS `Age`,
-                gender       AS `Gender`,
-                bmi          AS `BMI`,
-                smoking      AS `Smoking`,
-                crp          AS `CRP`,
-                il6          AS `IL-6`,
-                vcam1        AS `VCAM-1`,
-                glutathione  AS `Glutathione`,
-                risk_label   AS `Risk Level`,
-                created_at   AS `Date`
-            FROM patients
-            ORDER BY created_at DESC
+                p.id_pesakit        AS `ID`,
+                p.nama_pesakit      AS `Name`,
+                p.umur              AS `Age`,
+                p.jantina           AS `Gender`,
+                rk.id_rekod         AS `Record_ID`,
+                rk.bmi              AS `BMI`,
+                rk.status_merokok   AS `Smoking`,
+                rk.crp_level        AS `CRP`,
+                rk.il6_level        AS `IL-6`,
+                rk.vcam1_level      AS `VCAM-1`,
+                rk.glutathione      AS `Glutathione`,
+                la.keputusan_risiko AS `Risk Level`,
+                la.skor_crp         AS `CRP Status`,
+                la.skor_vcam1       AS `VCAM-1 Status`,
+                la.skor_il6         AS `IL-6 Status`,
+                la.skor_glutathione AS `Glutathione Status`,
+                rk.tarikh_rekod     AS `Date`
+            FROM Pesakit p
+            JOIN Rekod_Kesihatan rk   ON rk.id_pesakit = p.id_pesakit
+            JOIN Laporan_Analisis la  ON la.id_rekod   = rk.id_rekod
+            ORDER BY rk.tarikh_rekod DESC
         """
-        df = pd.read_sql(query, conn)
+        import warnings
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", UserWarning)
+            df = pd.read_sql(query, conn)
         conn.close()
         return df
-
+ 
+    def delete_patient_record(id_pesakit, id_rekod):
+        """
+        Deletes a patient's record across all 3 linked tables, in the correct
+        order to satisfy ON DELETE RESTRICT foreign key constraints:
+        Laporan_Analisis -> Rekod_Kesihatan -> Pesakit
+        """
+        import mysql.connector
+        conn = None
+        try:
+            conn = mysql.connector.connect(**DB_CONFIG)
+            cursor = conn.cursor()
+ 
+            cursor.execute("DELETE FROM Laporan_Analisis WHERE id_rekod = %s", (id_rekod,))
+            cursor.execute("DELETE FROM Rekod_Kesihatan WHERE id_rekod = %s", (id_rekod,))
+ 
+            # Only delete the Pesakit row if they have no other health records left
+            cursor.execute("SELECT COUNT(*) FROM Rekod_Kesihatan WHERE id_pesakit = %s", (id_pesakit,))
+            remaining = cursor.fetchone()[0]
+            if remaining == 0:
+                cursor.execute("DELETE FROM Pesakit WHERE id_pesakit = %s", (id_pesakit,))
+ 
+            conn.commit()
+            cursor.close()
+            return True, "Record deleted successfully."
+        except Exception as e:
+            if conn:
+                conn.rollback()
+            return False, str(e)
+        finally:
+            if conn and conn.is_connected():
+                conn.close()
+ 
     # ── UI ────────────────────────────────────────────────────────────────────
     try:
         import mysql.connector
         driver_available = True
     except ImportError:
         driver_available = False
-
+ 
     col_status, col_refresh = st.columns([4, 1])
-
+ 
     with col_status:
         if driver_available:
             st.markdown('<span class="db-status-badge db-connected">● MySQL Driver Installed</span>', unsafe_allow_html=True)
         else:
             st.markdown('<span class="db-status-badge db-disconnected">● mysql-connector-python not installed</span>', unsafe_allow_html=True)
             st.info("Run `pip install mysql-connector-python` and restart the app.")
-
+ 
     with col_refresh:
         if st.button("🔄 Refresh", use_container_width=True):
             st.cache_data.clear()
             st.rerun()
-
+ 
+    # Delete confirmation feedback (shown once after rerun)
+    if "delete_status" in st.session_state and st.session_state.delete_status is not None:
+        status, msg = st.session_state.delete_status
+        if status == "success":
+            st.success(f"✅ {msg}")
+        else:
+            st.error(f"❌ Failed to delete: {msg}")
+        st.session_state.delete_status = None
+ 
     st.markdown("<br>", unsafe_allow_html=True)
-
+ 
     if driver_available:
         try:
             df_patients = fetch_patients()
-
+ 
             if df_patients.empty:
                 st.info("No patient records found in the database.")
             else:
                 # ── Search / Filter Bar ──────────────────────────────────────
                 col_search, col_filter = st.columns([3, 1])
                 with col_search:
-                    search_term = st.text_input("🔍 Search by patient name", placeholder="Type a name…")
+                    search_term = st.text_input(
+                        "🔍 Search by patient name",
+                        placeholder="Type any part of a name…",
+                        help="Matches if the name contains this text anywhere (case-insensitive)."
+                    )
                 with col_filter:
-                    risk_filter = st.selectbox("Filter by Risk Level", ["All", "LOW RISK", "MEDIUM RISK", "HIGH RISK"])
-
+                    risk_filter = st.selectbox("Filter by Risk Level", ["All", "Low", "Medium", "High"])
+ 
                 filtered = df_patients.copy()
-                if search_term:
-                    filtered = filtered[filtered["Name"].str.contains(search_term, case=False, na=False)]
+ 
+                # "Contains" search — strips whitespace, case-insensitive, matches anywhere in name
+                if search_term and search_term.strip():
+                    term = search_term.strip()
+                    filtered = filtered[filtered["Name"].str.contains(term, case=False, na=False, regex=False)]
+ 
+                # "Contains" filter for risk level too (covers "Low", "LOW RISK", etc.)
                 if risk_filter != "All":
-                    filtered = filtered[filtered["Risk Level"] == risk_filter]
-
+                    filtered = filtered[filtered["Risk Level"].str.contains(risk_filter, case=False, na=False, regex=False)]
+ 
                 st.markdown(f"**{len(filtered)} record(s) found**")
-
-                # ── Colour-code Risk Level column ────────────────────────────
+ 
+                # ── Format float columns to 2 decimal places ──────────────────
+                float_cols = ["BMI", "CRP", "IL-6", "VCAM-1", "Glutathione"]
+                display_df = filtered.copy()
+                for col in float_cols:
+                    if col in display_df.columns:
+                        display_df[col] = display_df[col].astype(float).round(2)
+ 
+                # ── Colour-code Risk Level column ──────────────────────────────
                 def colour_risk(val):
-                    colour_map = {
-                        "HIGH RISK":   "background-color:#ffe0e0; color:#c0392b; font-weight:600",
-                        "MEDIUM RISK": "background-color:#fff3e0; color:#e67e22; font-weight:600",
-                        "LOW RISK":    "background-color:#e8f8f0; color:#27ae60; font-weight:600",
-                    }
-                    return colour_map.get(str(val).upper(), "")
-
-                styled = filtered.style.map(colour_risk, subset=["Risk Level"])
+                    val_upper = str(val).upper()
+                    if "HIGH" in val_upper:
+                        return "background-color:#ffe0e0; color:#c0392b; font-weight:600"
+                    if "MEDIUM" in val_upper:
+                        return "background-color:#fff3e0; color:#e67e22; font-weight:600"
+                    if "LOW" in val_upper:
+                        return "background-color:#e8f8f0; color:#27ae60; font-weight:600"
+                    return ""
+ 
+                def colour_status(val):
+                    val_upper = str(val).upper()
+                    if val_upper in ("HIGH", "LOW"):
+                        return "color:#c0392b; font-weight:600"
+                    if val_upper == "NORMAL":
+                        return "color:#27ae60; font-weight:600"
+                    return ""
+ 
+                status_cols = [c for c in ["CRP Status", "VCAM-1 Status", "IL-6 Status", "Glutathione Status"]
+                               if c in display_df.columns]
+ 
+                styled = display_df.style.map(colour_risk, subset=["Risk Level"]) \
+                                          .format({c: "{:.2f}" for c in float_cols if c in display_df.columns})
+                if status_cols:
+                    styled = styled.map(colour_status, subset=status_cols)
+ 
                 st.dataframe(styled, use_container_width=True, hide_index=True)
-
+ 
                 # ── Download as CSV ──────────────────────────────────────────
-                csv_data = filtered.to_csv(index=False).encode("utf-8")
+                csv_data = display_df.to_csv(index=False).encode("utf-8")
                 st.download_button(
                     label="⬇️ Download as CSV",
                     data=csv_data,
                     file_name="pcad_patients.csv",
                     mime="text/csv",
                 )
-
+ 
+                # ── Delete option per patient ──────────────────────────────────
+                st.markdown("<br>", unsafe_allow_html=True)
+                st.markdown("#### 🗑️ Delete a Record")
+                st.caption("Select a patient record below to permanently remove it from the database.")
+ 
+                # Build readable options: "ID - Name (Date)"
+                filtered = filtered.reset_index(drop=True)
+                options = [
+                    f"{row['ID']} — {row['Name']} ({pd.to_datetime(row['Date']).strftime('%Y-%m-%d')})"
+                    for _, row in filtered.iterrows()
+                ]
+ 
+                if options:
+                    del_col1, del_col2 = st.columns([4, 1])
+                    with del_col1:
+                        selected_option = st.selectbox("Select record to delete", options, key="delete_select")
+                    with del_col2:
+                        st.markdown("<br>", unsafe_allow_html=True)
+                        confirm_delete = st.button("🗑️ Delete", type="primary", use_container_width=True)
+ 
+                    if confirm_delete:
+                        selected_idx = options.index(selected_option)
+                        selected_row = filtered.iloc[selected_idx]
+                        success, msg = delete_patient_record(
+                            id_pesakit=int(selected_row["ID"]),
+                            id_rekod=int(selected_row["Record_ID"])
+                        )
+                        st.session_state.delete_status = ("success" if success else "error", msg)
+                        st.cache_data.clear()
+                        st.rerun()
+ 
         except Exception as e:
             st.error(f"❌ Could not connect to MySQL database.\n\n**Error:** `{e}`")
             st.markdown("""
                 **Troubleshooting checklist:**
                 - Is MySQL running and reachable from this machine?
                 - Are the credentials in Streamlit Secrets correct?
-                - Does the `pcad_db` database and `patients` table exist?
+                - Does the database and `Pesakit`/`Rekod_Kesihatan`/`Laporan_Analisis` tables exist?
                 - Is port 3306 open / not blocked by a firewall?
             """)
     else:
@@ -907,7 +1358,7 @@ elif st.session_state.page == 'patient_list':
                 1. Install the driver: <code>pip install mysql-connector-python</code><br>
                 2. Add your credentials to Streamlit Secrets (Settings → Secrets):<br>
                 <code>db_host, db_port, db_name, db_user, db_password</code><br>
-                3. Make sure your <code>patients</code> table has the expected columns (see the SQL query in the code).<br>
+                3. Make sure your <code>Pesakit</code>, <code>Rekod_Kesihatan</code>, and <code>Laporan_Analisis</code> tables exist.<br>
                 4. Restart the Streamlit app.
                 </p>
             </div>
