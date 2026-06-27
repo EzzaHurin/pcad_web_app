@@ -503,7 +503,7 @@ if st.session_state.page == 'main_menu':
     # ═══════════════════════════════════════════════════════════════════════
     # TAB 2: DATA EXPLORATION
     # ═══════════════════════════════════════════════════════════════════════
-    with tab_explore:
+    
         st.markdown("### 📊 Biomarker Distribution")
         st.markdown("Explore how each biomarker is distributed across all patients in the dataset.")
  
@@ -792,7 +792,7 @@ elif st.session_state.page == 'form':
             il6 = st.number_input("IL-6 Level (pg/mL)", value=5.0)
         with col2:
             vcam = st.number_input("VCAM-1 Level (ng/mL)", value=600.0)
-            glutathione = st.number_input("Glutathione (mmol/L)", value=8.0)
+            glutathione = st.number_input("Glutathione (μmol/L)", value=8.0)
             lipid = st.number_input("Lipid Profile", value=200.0)
             renal = st.number_input("Renal Profile", value=1.0)
             liver = st.number_input("Liver Profile", value=35.0)
