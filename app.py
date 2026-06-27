@@ -500,105 +500,91 @@ if st.session_state.page == 'main_menu':
 
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("---")
-    # ═══════════════════════════════════════════════════════════════════════
-    # TAB 2: DATA EXPLORATION
-    # ═══════════════════════════════════════════════════════════════════════
-    
-        st.markdown("### 📊 Biomarker Distribution")
-        st.markdown("Explore how each biomarker is distributed across all patients in the dataset.")
- 
-        # ── Load data directly from the same folder as this script ─────────────
-        import os
-        APP_DIR = os.path.dirname(os.path.abspath(__file__))
-        DEFAULT_DATA_PATH = os.path.join(APP_DIR, "patients.csv")
- 
-        @st.cache_data(ttl=300)
-        def load_dashboard_data(path):
-            return pd.read_csv(path)
- 
-        dashboard_df = None
-        if os.path.exists(DEFAULT_DATA_PATH):
-            dashboard_df = load_dashboard_data(DEFAULT_DATA_PATH)
-            st.caption(f"📁 Data loaded from `patients.csv` — {len(dashboard_df)} records")
-        else:
-            st.info("ℹ️ No `patients.csv` file found in the app directory. Please add this file next to `pcad_app.py` to view the data exploration dashboard.")
- 
-        if dashboard_df is not None and not dashboard_df.empty:
-            df = dashboard_df.copy()
- 
-            if "PCAD_Status" in df.columns:
-                df["PCAD_Label"] = df["PCAD_Status"].map({1: "Positive", 0: "Negative"})
- 
-            st.markdown("<br>", unsafe_allow_html=True)
- 
-            # --- Distribution: CRP, IL-6, VCAM-1, Glutathione (histograms) ---
-            biomarker_info = [
-                ("CRP", "mg/L", "#e74c3c"),
-                ("IL_6", "pg/mL", "#3498db"),
-                ("VCAM_1", "ng/mL", "#2ecc71"),
-                ("Glutathione", "mmol/L", "#f39c12"),
-            ]
- 
-            st.markdown("#### Distribution by Biomarker")
-            row1 = st.columns(2)
-            row2 = st.columns(2)
-            chart_slots = row1 + row2
- 
-            for (col_name, unit, color), slot in zip(biomarker_info, chart_slots):
-                with slot:
-                    if col_name in df.columns:
-                        label = col_name.replace("_", "-")
-                        st.markdown(f"**{label} Distribution ({unit})**")
-                        fig, ax = plt.subplots(figsize=(5, 3.5))
-                        ax.hist(df[col_name].dropna(), bins=15, color=color, edgecolor='white', alpha=0.85)
-                        ax.axvline(df[col_name].mean(), color='black', linestyle='--', linewidth=1,
-                                   label=f"Mean = {df[col_name].mean():.2f}")
-                        ax.set_xlabel(f"{label} ({unit})")
-                        ax.set_ylabel("Number of Patients")
-                        ax.legend(fontsize=8)
-                        fig.tight_layout()
-                        st.pyplot(fig)
-                        plt.close(fig)
+   # ══════════════════════════════════════════
+    # SECTION 2: DATA EXPLORATION
+    # ══════════════════════════════════════════
+    st.markdown("## 📊 Data Exploration")
+    st.markdown("Biomarker distributions from the patient dataset.")
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    import os
+    APP_DIR = os.path.dirname(os.path.abspath(__file__))
+    DEFAULT_DATA_PATH = os.path.join(APP_DIR, "data", "patients.csv")
+
+    @st.cache_data(ttl=300)
+    def load_dashboard_data(path):
+        return pd.read_csv(path)
+
+    dashboard_df = None
+    if os.path.exists(DEFAULT_DATA_PATH):
+        dashboard_df = load_dashboard_data(DEFAULT_DATA_PATH)
+        st.caption(f"📁 Data loaded from `data/patients.csv` — {len(dashboard_df)} records")
+    else:
+        st.warning("⚠️ No patient data file found. Please ensure `patients.csv` is placed in the `data/` folder in the same directory as `app.py`.")
+
+    if dashboard_df is not None and not dashboard_df.empty:
+        df = dashboard_df.copy()
+
+        if "PCAD_Status" in df.columns:
+            df["PCAD_Label"] = df["PCAD_Status"].map({1: "Positive", 0: "Negative"})
+
+        biomarker_cols = [c for c in ["CRP", "IL_6", "VCAM_1", "Glutathione"] if c in df.columns]
+
+        if biomarker_cols:
+            st.markdown("**Distribution of Key Biomarkers**")
+
+            row1_cols = st.columns(2)
+            biomarker_colors = {
+                "CRP":         "#e74c3c",
+                "IL_6":        "#3498db",
+                "VCAM_1":      "#2ecc71",
+                "Glutathione": "#f39c12",
+            }
+            biomarker_labels = {
+                "CRP":         "CRP (mg/L)",
+                "IL_6":        "IL-6 (pg/mL)",
+                "VCAM_1":      "VCAM-1 (ng/mL)",
+                "Glutathione": "Glutathione (μmol/L)",
+            }
+
+            for idx, biomarker in enumerate(biomarker_cols):
+                col = row1_cols[idx % 2]
+                with col:
+                    st.markdown(f"**{biomarker_labels.get(biomarker, biomarker)} Distribution**")
+                    fig, ax = plt.subplots(figsize=(5, 3.5))
+
+                    if "PCAD_Label" in df.columns:
+                        for label, color in [("Negative", "#28a745"), ("Positive", "#ff4b4b")]:
+                            subset = df[df["PCAD_Label"] == label][biomarker].dropna()
+                            ax.hist(subset, bins=15, alpha=0.6, label=label, color=color, edgecolor='white')
+                        ax.legend(title="PCAD Status", fontsize=8)
                     else:
-                        st.caption(f"Column '{col_name}' not found in data.")
- 
-            st.markdown("<br>", unsafe_allow_html=True)
- 
-            # --- Comparison: biomarkers by PCAD status (boxplots) ---
-            st.markdown("#### Biomarker Spread by PCAD Status")
-            if "PCAD_Label" in df.columns:
-                box_cols = st.columns(2)
-                for i, (col_name, unit, color) in enumerate(biomarker_info):
-                    if col_name in df.columns:
-                        with box_cols[i % 2]:
-                            label = col_name.replace("_", "-")
-                            fig, ax = plt.subplots(figsize=(5, 3.5))
-                            data_to_plot = [df[df["PCAD_Label"] == lbl][col_name].dropna()
-                                            for lbl in ["Negative", "Positive"]]
-                            bp = ax.boxplot(data_to_plot, labels=["Negative", "Positive"], patch_artist=True)
-                            for patch, c in zip(bp['boxes'], ['#28a745', '#ff4b4b']):
-                                patch.set_facecolor(c)
-                                patch.set_alpha(0.6)
-                            ax.set_ylabel(f"{label} ({unit})")
-                            ax.set_title(f"{label} by PCAD Status", fontsize=10, fontweight='bold')
-                            fig.tight_layout()
-                            st.pyplot(fig)
-                            plt.close(fig)
-            else:
-                st.caption("Column 'PCAD_Status' not found — cannot group by outcome.")
- 
-            # --- Summary statistics table ---
-            st.markdown("<br>", unsafe_allow_html=True)
-            st.markdown("#### Summary Statistics")
-            stat_cols = [c for c, _, _ in biomarker_info if c in df.columns]
-            if stat_cols:
-                summary = df[stat_cols].describe().T[["mean", "std", "min", "max"]].round(2)
-                summary.columns = ["Mean", "Std Dev", "Min", "Max"]
-                st.dataframe(summary, use_container_width=True)
- 
-            with st.expander("📋 View Raw Data Table"):
-                st.dataframe(df, use_container_width=True, hide_index=True)
- 
+                        ax.hist(df[biomarker].dropna(), bins=15,
+                                color=biomarker_colors.get(biomarker, "#4b8bff"), edgecolor='white')
+
+                    ax.set_xlabel(biomarker_labels.get(biomarker, biomarker), fontsize=9)
+                    ax.set_ylabel("Number of Patients", fontsize=9)
+                    ax.set_title(f"{biomarker_labels.get(biomarker, biomarker)} Distribution",
+                                 fontsize=10, fontweight='bold')
+                    fig.tight_layout()
+                    st.pyplot(fig)
+                    plt.close(fig)
+
+                    stats = df[biomarker].describe()
+                    st.caption(
+                        f"Mean: {stats['mean']:.2f} | Std: {stats['std']:.2f} | "
+                        f"Min: {stats['min']:.2f} | Max: {stats['max']:.2f}"
+                    )
+
+                if idx % 2 == 1 and idx < len(biomarker_cols) - 1:
+                    st.markdown("<br>", unsafe_allow_html=True)
+                    row1_cols = st.columns(2)
+
+        else:
+            st.warning("⚠️ Biomarker columns (CRP, IL_6, VCAM_1, Glutathione) not found in the dataset.")
+
+        with st.expander("📋 View Raw Data Table"):
+            st.dataframe(df, use_container_width=True, hide_index=True)
     # ══════════════════════════════════════════
     # SECTION 3: MODEL PERFORMANCE
     # ══════════════════════════════════════════
