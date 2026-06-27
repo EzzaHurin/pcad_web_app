@@ -5,3 +5,4 @@ joblib
 matplotlib
 shap
 mysql-connector-python
+bcrypt
