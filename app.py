@@ -770,6 +770,8 @@ elif st.session_state.page == 'result':
 
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("---")
+    
+    # ── SHAP ANALYSIS SECTION ─────────────────────────────────────────────────
     st.markdown("### 🔍 AI Explanation — Why This Risk Level?")
     st.markdown("SHAP (SHapley Additive exPlanations) shows **which features pushed the prediction** toward or away from the predicted risk class.")
 
@@ -838,82 +840,112 @@ elif st.session_state.page == 'result':
 
                     tab1, tab2, tab3 = st.tabs(["Waterfall Chart", "Bar Chart", "Feature Table"])
 
+                    # TAB 1: Waterfall
                     with tab1:
                         st.markdown("**Waterfall chart** — each bar shows how much a feature increased (red) or decreased (blue) the risk score.")
 
                         sorted_idx  = np.argsort(np.abs(sv))[::-1]
                         top_n       = min(11, len(sorted_idx))
                         idx_top     = sorted_idx[:top_n][::-1]
-                        feat_labels = [f"{feature_names[i]}\n= {raw_vals[i]:.2f}" for i in idx_top]
+                        feat_labels = [f"{feature_names[i]}  =  {raw_vals[i]:.2f}" for i in idx_top]
                         values      = sv[idx_top]
                         colors      = ['#ff4b4b' if v > 0 else '#4b8bff' for v in values]
 
-                        fig_wf, ax_wf = plt.subplots(figsize=(9, 5))
-                        bars = ax_wf.barh(range(len(values)), values, color=colors, edgecolor='white', height=0.6)
-                        ax_wf.set_yticks(range(len(values)))
-                        ax_wf.set_yticklabels(feat_labels, fontsize=9)
-                        ax_wf.axvline(0, color='black', linewidth=0.8)
-                        ax_wf.set_xlabel("SHAP Value (impact on model output)", fontsize=10)
-                        ax_wf.set_title(f"Feature Contributions - {pred_label}", fontsize=12, fontweight='bold', pad=12)
-                        for bar, val in zip(bars, values):
-                            offset = 0.003 if val >= 0 else -0.003
-                            ha     = 'left' if val >= 0 else 'right'
-                            ax_wf.text(val + offset, bar.get_y() + bar.get_height() / 2,
-                                       f"{val:+.3f}", va='center', ha=ha, fontsize=8)
-                        red_patch  = mpatches.Patch(color='#ff4b4b', label='Increases risk')
-                        blue_patch = mpatches.Patch(color='#4b8bff', label='Decreases risk')
-                        ax_wf.legend(handles=[red_patch, blue_patch], loc='lower right', fontsize=9)
-                        fig_wf.tight_layout()
-                        st.pyplot(fig_wf)
-                        plt.close(fig_wf)
+                        # centre chart using columns: padding | chart | padding
+                        _, chart_col, _ = st.columns([0.5, 9, 0.5])
+                        with chart_col:
+                            fig_wf, ax_wf = plt.subplots(figsize=(7, 3.5))
+                            fig_wf.patch.set_facecolor('#fafafa')
+                            ax_wf.set_facecolor('#fafafa')
 
+                            bars = ax_wf.barh(range(len(values)), values,
+                                              color=colors, edgecolor='white', height=0.55)
+                            ax_wf.set_yticks(range(len(values)))
+                            ax_wf.set_yticklabels(feat_labels, fontsize=8)
+                            ax_wf.axvline(0, color='#333333', linewidth=0.8)
+                            ax_wf.set_xlabel("SHAP Value (impact on model output)", fontsize=9)
+                            ax_wf.set_title(f"Feature Contributions — {pred_label}",
+                                            fontsize=10, fontweight='bold', pad=10)
+                            ax_wf.tick_params(axis='x', labelsize=8)
+                            ax_wf.spines[['top', 'right']].set_visible(False)
+
+                            for bar, val in zip(bars, values):
+                                offset = 0.002 if val >= 0 else -0.002
+                                ha     = 'left' if val >= 0 else 'right'
+                                ax_wf.text(val + offset, bar.get_y() + bar.get_height() / 2,
+                                           f"{val:+.3f}", va='center', ha=ha, fontsize=7)
+
+                            red_patch  = mpatches.Patch(color='#ff4b4b', label='Increases risk')
+                            blue_patch = mpatches.Patch(color='#4b8bff', label='Decreases risk')
+                            ax_wf.legend(handles=[red_patch, blue_patch],
+                                         loc='lower right', fontsize=8, framealpha=0.7)
+                            fig_wf.tight_layout(pad=1.5)
+                            st.pyplot(fig_wf, use_container_width=True)
+                            plt.close(fig_wf)
+
+                    # TAB 2: Bar chart
                     with tab2:
                         st.markdown("**Bar chart** — absolute SHAP value per feature; longer bar = more influential.")
+
                         abs_sv     = np.abs(sv)
                         sorted_abs = np.argsort(abs_sv)
                         feat_bar   = [feature_names[i] for i in sorted_abs]
                         vals_bar   = abs_sv[sorted_abs]
 
-                        fig_bar, ax_bar = plt.subplots(figsize=(9, 5))
-                        bar_colors = plt.cm.RdYlGn_r(np.linspace(0.2, 0.8, len(vals_bar)))
-                        ax_bar.barh(range(len(vals_bar)), vals_bar, color=bar_colors, edgecolor='white', height=0.6)
-                        ax_bar.set_yticks(range(len(vals_bar)))
-                        ax_bar.set_yticklabels(feat_bar, fontsize=10)
-                        ax_bar.set_xlabel("Mean |SHAP Value|", fontsize=10)
-                        ax_bar.set_title("Feature Importance (SHAP)", fontsize=12, fontweight='bold', pad=12)
-                        for i, v in enumerate(vals_bar):
-                            ax_bar.text(v + 0.001, i, f"{v:.3f}", va='center', fontsize=8)
-                        fig_bar.tight_layout()
-                        st.pyplot(fig_bar)
-                        plt.close(fig_bar)
+                        _, chart_col2, _ = st.columns([0.5, 9, 0.5])
+                        with chart_col2:
+                            fig_bar, ax_bar = plt.subplots(figsize=(7, 3.5))
+                            fig_bar.patch.set_facecolor('#fafafa')
+                            ax_bar.set_facecolor('#fafafa')
 
+                            bar_colors = plt.cm.RdYlGn_r(np.linspace(0.2, 0.8, len(vals_bar)))
+                            ax_bar.barh(range(len(vals_bar)), vals_bar,
+                                        color=bar_colors, edgecolor='white', height=0.55)
+                            ax_bar.set_yticks(range(len(vals_bar)))
+                            ax_bar.set_yticklabels(feat_bar, fontsize=9)
+                            ax_bar.set_xlabel("Mean |SHAP Value|", fontsize=9)
+                            ax_bar.set_title("Feature Importance (SHAP)",
+                                             fontsize=10, fontweight='bold', pad=10)
+                            ax_bar.tick_params(axis='x', labelsize=8)
+                            ax_bar.spines[['top', 'right']].set_visible(False)
+
+                            for i, v in enumerate(vals_bar):
+                                ax_bar.text(v + 0.001, i, f"{v:.3f}",
+                                            va='center', fontsize=7.5)
+
+                            fig_bar.tight_layout(pad=1.5)
+                            st.pyplot(fig_bar, use_container_width=True)
+                            plt.close(fig_bar)
+
+                    # TAB 3: Table
                     with tab3:
                         st.markdown("**Detailed breakdown** of SHAP values per feature.")
+
                         shap_df = pd.DataFrame({
                             'Feature':       feature_names,
                             'Patient Value': [f"{v:.2f}" for v in raw_vals],
                             'SHAP Value':    [round(float(v), 4) for v in sv],
-                            'Direction':     ['Up - Increases Risk' if v > 0 else 'Down - Decreases Risk' for v in sv],
+                            'Direction':     ['⬆ Increases Risk' if v > 0 else '⬇ Decreases Risk' for v in sv],
                             '|Impact|':      [round(abs(float(v)), 4) for v in sv],
                         }).sort_values('|Impact|', ascending=False).reset_index(drop=True)
 
                         def highlight_direction(val):
-                            if 'Up'   in str(val): return 'color: #c0392b; font-weight: 600'
-                            if 'Down' in str(val): return 'color: #27ae60; font-weight: 600'
+                            if '⬆' in str(val): return 'color: #c0392b; font-weight: 600'
+                            if '⬇' in str(val): return 'color: #27ae60; font-weight: 600'
                             return ''
 
-                        styled_shap = shap_df.style.map(highlight_direction, subset=['Direction'])
-                        st.dataframe(styled_shap, use_container_width=True, hide_index=True)
-                        csv_shap = shap_df.to_csv(index=False).encode('utf-8')
-                        st.download_button("Download SHAP Table", csv_shap, "shap_analysis.csv", "text/csv")
+                        # centre table with columns
+                        _, tbl_col, _ = st.columns([0.5, 9, 0.5])
+                        with tbl_col:
+                            styled_shap = shap_df.style.map(highlight_direction, subset=['Direction'])
+                            st.dataframe(styled_shap, use_container_width=True, hide_index=True, height=420)
+
+                            csv_shap = shap_df.to_csv(index=False).encode('utf-8')
+                            st.download_button("⬇️ Download SHAP Table", csv_shap,
+                                               "shap_analysis.csv", "text/csv")
 
             except Exception as e:
                 st.error(f"SHAP calculation failed: `{e}`")
-
-    st.markdown("<br>", unsafe_allow_html=True)
-    if st.button("🔄 Update Patient Data", type="primary", use_container_width=True):
-        st.session_state.page = 'form'
-        st.rerun()
 
 
 # ─────────────────────────────────────────────
