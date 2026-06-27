@@ -925,13 +925,14 @@ elif st.session_state.page == 'result':
                             'Feature':       feature_names,
                             'Patient Value': [f"{v:.2f}" for v in raw_vals],
                             'SHAP Value':    [round(float(v), 4) for v in sv],
-                            'Direction':     ['⬆ Increases Risk' if v > 0 else '⬇ Decreases Risk' for v in sv],
+                            'Direction':     ['⬆ Increases Risk' if v > 0 else ('⬇ Decreases Risk' if v < 0 else '— No Influence') for v in sv],
                             '|Impact|':      [round(abs(float(v)), 4) for v in sv],
                         }).sort_values('|Impact|', ascending=False).reset_index(drop=True)
 
                         def highlight_direction(val):
                             if '⬆' in str(val): return 'color: #c0392b; font-weight: 600'
                             if '⬇' in str(val): return 'color: #27ae60; font-weight: 600'
+                            if '—' in str(val):  return 'color: #888888; font-weight: 600'
                             return ''
 
                         # centre table with columns
