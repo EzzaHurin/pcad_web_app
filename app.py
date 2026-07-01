@@ -1157,8 +1157,6 @@ elif st.session_state.page == 'patient_list':
             st.markdown("""
                 **Troubleshooting checklist:**
                 - Is MySQL running and reachable from this machine?
-                - Are the credentials in Streamlit Secrets correct?
-                - Does the database and `Pesakit`/`Rekod_Kesihatan`/`Laporan_Analisis` tables exist?
                 - Is port 3306 open / not blocked by a firewall?
             """)
     else:
@@ -1166,11 +1164,7 @@ elif st.session_state.page == 'patient_list':
             <div class="info-card">
                 <h4>🔌 MySQL Integration Setup</h4>
                 <p>
-                1. Install the driver: <code>pip install mysql-connector-python</code><br>
-                2. Add your credentials to Streamlit Secrets (Settings → Secrets):<br>
-                <code>db_host, db_port, db_name, db_user, db_password</code><br>
-                3. Make sure your <code>Pesakit</code>, <code>Rekod_Kesihatan</code>, and <code>Laporan_Analisis</code> tables exist.<br>
-                4. Restart the Streamlit app.
+                Check the MySQL connector.
                 </p>
             </div>
         """, unsafe_allow_html=True)
