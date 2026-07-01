@@ -603,22 +603,22 @@ elif st.session_state.page == 'form':
                 conn.close()
 
     with st.form("prediction_form"):
-        name = st.text_input("Patient Full Name", value="John Doe")
+        name = st.text_input("Patient Full Name")
 
         col1, col2 = st.columns(2)
         with col1:
-            age       = st.number_input("Age", min_value=1, max_value=120, value=50)
-            bmi       = st.number_input("BMI", min_value=10.0, max_value=50.0, value=25.0)
+            age       = st.number_input("Age", min_value=1, max_value=120)
+            bmi       = st.number_input("BMI", min_value=10.0, max_value=50.0)
             gender    = st.selectbox("Gender", options=[1, 0], format_func=lambda x: "Male" if x == 1 else "Female")
             smoking   = st.selectbox("Smoking Status", options=[1, 0], format_func=lambda x: "Smoker" if x == 1 else "Non-Smoker")
-            crp       = st.number_input("CRP Level (mg/L)", value=3.0)
-            il6       = st.number_input("IL-6 Level (pg/mL)", value=5.0)
+            crp       = st.number_input("CRP Level (mg/L)")
+            il6       = st.number_input("IL-6 Level (pg/mL)")
         with col2:
-            vcam        = st.number_input("VCAM-1 Level (ng/mL)", value=600.0)
-            glutathione = st.number_input("Glutathione (mmol/L)", value=8.0)
-            lipid       = st.number_input("Lipid Profile", value=200.0)
-            renal       = st.number_input("Renal Profile", value=1.0)
-            liver       = st.number_input("Liver Profile", value=35.0)
+            vcam        = st.number_input("VCAM-1 Level (ng/mL)")
+            glutathione = st.number_input("Glutathione (mmol/L)")
+            lipid       = st.number_input("Lipid Profile")
+            renal       = st.number_input("Renal Profile")
+            liver       = st.number_input("Liver Profile")
 
         submit = st.form_submit_button("Predict Risk Level", use_container_width=True, type="primary")
 
