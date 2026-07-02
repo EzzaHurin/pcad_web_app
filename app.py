@@ -13,7 +13,7 @@ except ImportError:
     SHAP_AVAILABLE = False
 
 # --- 1. CONFIG & ASSETS ---
-st.set_page_config(page_title="PCAD Risk Assessment", layout="wide")
+st.set_page_config(page_title="PCAD Risk Detection and Classification System", layout="wide")
 
 def local_css():
     st.markdown("""
