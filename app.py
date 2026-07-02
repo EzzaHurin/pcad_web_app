@@ -18,120 +18,160 @@ st.set_page_config(page_title="PCAD Risk Assessment", layout="wide")
 def local_css():
     st.markdown("""
     <style>
-    .stApp { background-color: #FFF5F7; }
-    [data-testid="stAppViewContainer"] { background-color: #FFF5F7; }
-    [data-testid="stHeader"] { background-color: #FFF5F7; }
+    :root {
+      /* MATERIAL DESIGN 3 THEME - LIGHT MEDIUM CONTRAST */
+      --md-sys-color-primary: rgb(115 0 19);
+      --md-sys-color-surface-tint: rgb(176 43 52);
+      --md-sys-color-on-primary: rgb(255 255 255);
+      --md-sys-color-primary-container: rgb(197 58 65);
+      --md-sys-color-on-primary-container: rgb(255 255 255);
+      --md-sys-color-secondary: rgb(82 43 42);
+      --md-sys-color-on-secondary: rgb(255 255 255);
+      --md-sys-color-secondary-container: rgb(145 96 95);
+      --md-sys-color-on-secondary-container: rgb(255 255 255);
+      --md-sys-color-tertiary: rgb(74 50 0);
+      --md-sys-color-on-tertiary: rgb(255 255 255);
+      --md-sys-color-tertiary-container: rgb(140 102 31);
+      --md-sys-color-on-tertiary-container: rgb(255 255 255);
+      --md-sys-color-error: rgb(116 0 6);
+      --md-sys-color-on-error: rgb(255 255 255);
+      --md-sys-color-error-container: rgb(207 44 39);
+      --md-sys-color-on-error-container: rgb(255 255 255);
+      --md-sys-color-background: rgb(255 248 247);
+      --md-sys-color-on-background: rgb(37 24 24);
+      --md-sys-color-surface: rgb(255 248 247);
+      --md-sys-color-on-surface: rgb(26 14 14);
+      --md-sys-color-surface-variant: rgb(254 218 216);
+      --md-sys-color-on-surface-variant: rgb(71 48 48);
+      --md-sys-color-outline: rgb(101 76 75);
+      --md-sys-color-outline-variant: rgb(130 102 101);
+      --md-sys-color-shadow: rgb(0 0 0);
+      --md-sys-color-scrim: rgb(0 0 0);
+      --md-sys-color-surface-container-lowest: rgb(255 255 255);
+      --md-sys-color-surface-container-low: rgb(255 240 239);
+      --md-sys-color-surface-container: rgb(252 226 225);
+      --md-sys-color-surface-container-high: rgb(240 215 214);
+      --md-sys-color-inverse-primary: rgb(255 179 177);
+    }
 
+    /* GLOBAL APP BACKGROUND */
+    .stApp { background-color: var(--md-sys-color-background); color: var(--md-sys-color-on-background); }
+    [data-testid="stAppViewContainer"] { background-color: var(--md-sys-color-background); }
+    [data-testid="stHeader"] { background-color: var(--md-sys-color-background); }
+
+    /* LOGIN CARD */
     .login-card {
-        background: white; border-radius: 16px; padding: 36px 32px 28px 32px;
+        background: var(--md-sys-color-surface-container-lowest); border-radius: 16px; padding: 36px 32px 28px 32px;
         text-align: center; box-shadow: 0 8px 24px rgba(0,0,0,0.06);
-        max-width: 380px; margin: 40px auto 24px auto;
+        max-width: 380px; margin: 40px auto 24px auto; border: 1px solid var(--md-sys-color-outline-variant);
     }
-    .login-heart-icon { font-size: 36px; margin-bottom: 8px; }
-    .login-title { font-size: 19px; font-weight: 800; color: #00000; line-height: 1.3; margin: 8px 0 4px 0; }
-    .login-subtitle { font-size: 14px; color: #888; margin-top: 6px; }
-    .login-form-container {
-        max-width: 460px; margin: 0 auto; background: rgba(255,255,255,0.5);
-        padding: 24px 28px; border-radius: 12px;
-    }
+    .login-heart-icon { font-size: 36px; margin-bottom: 8px; color: var(--md-sys-color-primary); }
+    .login-title { font-size: 19px; font-weight: 800; color: var(--md-sys-color-on-surface); line-height: 1.3; margin: 8px 0 4px 0; }
+    .login-subtitle { font-size: 14px; color: var(--md-sys-color-on-surface-variant); margin-top: 6px; }
+    
+    /* FORMS */
     div[data-testid="stForm"] {
-        max-width: 460px; margin: 0 auto; background: rgba(255,255,255,0.5);
-        border-radius: 12px; border: none; padding: 24px 28px;
+        max-width: 460px; margin: 0 auto; background: var(--md-sys-color-surface-container-low);
+        border-radius: 12px; border: 1px solid var(--md-sys-color-outline-variant); padding: 24px 28px;
     }
-    div[data-testid="stForm"] button { background-color: #ff4b4b; color: white; border: none; font-weight: 600; }
-    div[data-testid="stForm"] button:hover { background-color: #e63e3e; color: white; }
+    div[data-testid="stForm"] button { background-color: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); border: none; font-weight: 600; }
+    div[data-testid="stForm"] button:hover { background-color: var(--md-sys-color-surface-tint); color: var(--md-sys-color-on-primary); }
 
+    /* SIDEBAR */
     [data-testid="stSidebar"] {
-        background: linear-gradient(135deg, #ff7aa2 0%, #ff4d7d 45%, #ff2d6f 75%, #e91e63 100%);
+        background: var(--md-sys-color-inverse-primary);
+        border-right: 1px solid var(--md-sys-color-outline-variant);
     }
-    [data-testid="stSidebar"] * { color: #e0e6f0 !important; }
+    [data-testid="stSidebar"] * { color: var(--md-sys-color-on-surface) !important; }
 
     .sidebar-user-card {
-        background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12);
+        background: var(--md-sys-color-surface-container); border: 1px solid var(--md-sys-color-outline-variant);
         border-radius: 12px; padding: 16px; margin-bottom: 8px; text-align: center;
     }
     .sidebar-avatar {
         width: 56px; height: 56px; border-radius: 50%;
-        background: linear-gradient(135deg, #ff4b4b, #ff9a9e);
+        background: var(--md-sys-color-primary-container);
+        color: var(--md-sys-color-on-primary-container) !important;
         display: flex; align-items: center; justify-content: center;
-        font-size: 24px; margin: 0 auto 10px auto; box-shadow: 0 4px 12px rgba(255,75,75,0.4);
+        font-size: 24px; margin: 0 auto 10px auto; font-weight: bold;
     }
-    .sidebar-username { font-weight: 700; font-size: 15px; color: #ffffff !important; margin: 0; }
-    .sidebar-role { font-size: 11px; color: #9aafc7 !important; margin: 2px 0 0 0; }
-    .sidebar-divider { border: none; border-top: 1px solid rgba(255,255,255,0.1); margin: 12px 0; }
+    .sidebar-username { font-weight: 700; font-size: 15px; margin: 0; }
+    .sidebar-role { font-size: 11px; margin: 2px 0 0 0; color: var(--md-sys-color-on-surface-variant) !important;}
+    .sidebar-divider { border: none; border-top: 1px solid var(--md-sys-color-outline-variant); margin: 12px 0; }
     .nav-label {
         font-size: 10px; font-weight: 700; letter-spacing: 1.5px;
-        color: #ffffff !important; text-transform: uppercase; padding: 4px 0 8px 0;
+        color: var(--md-sys-color-primary) !important; text-transform: uppercase; padding: 4px 0 8px 0;
     }
-
-    .patient-banner {
-        background: linear-gradient(135deg, #f0f4ff 0%, #e8f0fe 100%);
-        padding: 20px 24px; border-radius: 12px; display: flex;
-        justify-content: space-between; align-items: center;
-        margin-bottom: 20px; border: 1px solid #d0dcf5;
-    }
-    .heartbeat-icon { font-size: 30px; color: #ff4b4b; }
-    .banner-item label { font-size: 11px; color: #666; display: block; text-transform: uppercase; letter-spacing: 0.5px; }
-    .banner-item span { font-weight: bold; font-size: 18px; color: #1a1f36; }
-
-    .risk-card {
-        background: white; padding: 30px; border-radius: 15px;
-        text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 1px solid #f0f0f0;
-    }
-    .donut-outer {
-        margin: 20px auto; width: 150px; height: 150px; border-radius: 50%;
-        background: conic-gradient(var(--risk-color) var(--risk-degree), #eee 0deg);
-        display: flex; align-items: center; justify-content: center;
-    }
-    .donut-inner {
-        width: 120px; height: 120px; background: white; border-radius: 50%;
-        display: flex; flex-direction: column; align-items: center; justify-content: center;
-    }
-    .risk-score-text { font-size: 32px; font-weight: bold; }
-    .risk-label-box { padding: 10px; border-radius: 8px; font-weight: bold; margin-top: 10px; }
-
-    .bio-card {
-        background: #f9f9f9; padding: 15px; border-radius: 10px;
-        border-left: 5px solid #ddd; margin-bottom: 10px;
-    }
-    .bio-title { font-size: 14px; color: #555; font-weight: 600; }
-    .bio-value { font-size: 20px; font-weight: bold; }
-    .bio-desc { font-size: 12px; color: #777; }
-    .status-high { color: #ff4b4b; font-weight: bold; }
-    .status-normal { color: #28a745; font-weight: bold; }
-    .disclaimer-box {
-        background-color: #fff3cd; padding: 15px; border-radius: 8px;
-        font-size: 13px; margin-top: 20px; border-left: 4px solid #ffc107;
-    }
-
-    .dash-metric-card {
-        background: white; border-radius: 12px; padding: 20px; text-align: center;
-        box-shadow: 0 2px 12px rgba(0,0,0,0.06); border: 1px solid #f0f0f0; transition: transform 0.2s;
-    }
-    .dash-metric-card:hover { transform: translateY(-2px); }
-    .dash-metric-icon { font-size: 36px; margin-bottom: 8px; }
-    .dash-metric-value { font-size: 28px; font-weight: 800; color: #1a1f36; }
-    .dash-metric-label { font-size: 13px; color: #888; margin-top: 4px; }
-
-    .info-card {
-        background: white; border-radius: 12px; padding: 20px;
-        box-shadow: 0 2px 12px rgba(0,0,0,0.06); border: 1px solid #f0f0f0; margin-bottom: 16px;
-    }
-    .info-card h4 { margin: 0 0 8px 0; color: #1a1f36; }
-    .info-card p { margin: 0; font-size: 14px; color: #555; line-height: 1.6; }
-
-    .db-status-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
-    .db-connected { background: #d4edda; color: #155724; }
-    .db-disconnected { background: #f8d7da; color: #721c24; }
-
+    
     div[data-testid="stSidebarUserContent"] .stButton button {
         width: 100%; text-align: left; background: transparent; border: none;
         border-radius: 8px; padding: 10px 14px; font-size: 14px; font-weight: 500;
-        color: #c8d6ea !important; transition: background 0.2s; cursor: pointer;
+        transition: background 0.2s; cursor: pointer;
     }
     div[data-testid="stSidebarUserContent"] .stButton button:hover {
-        background: rgba(255,255,255,0.1) !important; color: #ffffff !important;
+        background: var(--md-sys-color-surface-variant) !important; color: var(--md-sys-color-on-surface-variant) !important;
     }
+
+    /* RESULT BANNER & CARDS */
+    .patient-banner {
+        background: var(--md-sys-color-secondary-container);
+        color: var(--md-sys-color-on-secondary-container);
+        padding: 20px 24px; border-radius: 12px; display: flex;
+        justify-content: space-between; align-items: center;
+        margin-bottom: 20px; border: 1px solid var(--md-sys-color-outline-variant);
+    }
+    .heartbeat-icon { font-size: 30px; color: var(--md-sys-color-on-secondary-container); }
+    .banner-item label { font-size: 11px; display: block; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.8; }
+    .banner-item span { font-weight: bold; font-size: 18px; }
+
+    .risk-card {
+        background: var(--md-sys-color-surface-container-lowest); padding: 30px; border-radius: 15px;
+        text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid var(--md-sys-color-outline-variant);
+    }
+    .donut-outer {
+        margin: 20px auto; width: 150px; height: 150px; border-radius: 50%;
+        background: conic-gradient(var(--risk-color) var(--risk-degree), var(--md-sys-color-surface-variant) 0deg);
+        display: flex; align-items: center; justify-content: center;
+    }
+    .donut-inner {
+        width: 120px; height: 120px; background: var(--md-sys-color-surface-container-lowest); border-radius: 50%;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+    }
+    
+    .bio-card {
+        background: var(--md-sys-color-surface-container-low); padding: 15px; border-radius: 10px;
+        border-left: 5px solid var(--md-sys-color-primary); margin-bottom: 10px;
+    }
+    .bio-title { font-size: 14px; font-weight: 600; color: var(--md-sys-color-on-surface); }
+    .bio-value { font-size: 20px; font-weight: bold; color: var(--md-sys-color-on-surface); }
+    .bio-desc { font-size: 12px; color: var(--md-sys-color-on-surface-variant); }
+    .status-high { color: var(--md-sys-color-error); font-weight: bold; }
+    .status-normal { color: #2e7d32; font-weight: bold; }
+    
+    .disclaimer-box {
+        background-color: var(--md-sys-color-tertiary-container); color: var(--md-sys-color-on-tertiary-container);
+        padding: 15px; border-radius: 8px; font-size: 13px; margin-top: 20px; 
+    }
+
+    .dash-metric-card {
+        background: var(--md-sys-color-surface-container-lowest); border-radius: 12px; padding: 20px; text-align: center;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.04); border: 1px solid var(--md-sys-color-outline-variant); transition: transform 0.2s;
+    }
+    .dash-metric-card:hover { transform: translateY(-2px); }
+    .dash-metric-icon { font-size: 36px; margin-bottom: 8px; }
+    .dash-metric-value { font-size: 28px; font-weight: 800; color: var(--md-sys-color-on-surface); }
+    .dash-metric-label { font-size: 13px; color: var(--md-sys-color-on-surface-variant); margin-top: 4px; }
+
+    .info-card {
+        background: var(--md-sys-color-surface-container-low); border-radius: 12px; padding: 20px;
+        border: 1px solid var(--md-sys-color-outline-variant); margin-bottom: 16px;
+    }
+    .info-card h4 { margin: 0 0 8px 0; color: var(--md-sys-color-on-surface); }
+    .info-card p { margin: 0; font-size: 14px; color: var(--md-sys-color-on-surface-variant); line-height: 1.6; }
+
+    .db-status-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+    .db-connected { background: #d4edda; color: #155724; }
+    .db-disconnected { background: var(--md-sys-color-error-container); color: var(--md-sys-color-on-error-container); }
     </style>
     """, unsafe_allow_html=True)
 
@@ -275,7 +315,7 @@ with st.sidebar:
         </div>
     """, unsafe_allow_html=True)
 
-    if st.button("🔓  Log Out", key="logout_btn", use_container_width=True):
+    if st.button(" Log Out", key="logout_btn", use_container_width=True):
         st.session_state.is_authenticated = False
         st.session_state.logged_in_user = None
         st.session_state.page = 'main_menu'
@@ -284,12 +324,12 @@ with st.sidebar:
         st.rerun()
 
     st.markdown('<hr class="sidebar-divider">', unsafe_allow_html=True)
-    st.markdown('<div class="nav-label">Navigation</div>', unsafe_allow_html=True)
+    st.markdown('<div class="nav-label">Menu</div>', unsafe_allow_html=True)
 
     nav_items = [
-        ("🏠  Homepage",        "main_menu"),
-        ("🫀  Predict PCAD",     "form"),
-        ("🗃️  Patient Data List", "patient_list"),
+        ("Homepage",        "main_menu"),
+        ("Predict PCAD",     "form"),
+        ("Patient Data List", "patient_list"),
     ]
     for label, page_key in nav_items:
         is_active = st.session_state.page == page_key
@@ -299,7 +339,7 @@ with st.sidebar:
             st.rerun()
 
     st.markdown('<hr class="sidebar-divider">', unsafe_allow_html=True)
-    st.markdown('<div style="font-size:11px; color:#fffff; text-align:center;">by Ezzahurin Ajemal</div>', unsafe_allow_html=True)
+    
 # ── END SIDEBAR ──
 
 
@@ -311,29 +351,36 @@ if st.session_state.page == 'main_menu':
     # ══════════════════════════════════════════
     # SECTION 1: ABOUT THIS SYSTEM
     # ══════════════════════════════════════════
-    st.markdown("## 📌 About This System")
+    st.markdown("## Premature Coronary Artery Disease (PCAD) Risk Detection and Classification System")
     st.markdown(
         f"Welcome back, **{st.session_state.logged_in_user['name']}**. "
-        "Here's an overview of the PCAD Risk Prediction and Classification System."
+        "Here's an overview of the PCAD Risk Detection and Classification System."
     )
     st.markdown("<br>", unsafe_allow_html=True)
 
     st.markdown("""
         <div class="info-card">
-            <h4>🎯 Purpose</h4>
+            <h4> System Overview & Purpose</h4>     
             <p>
-            This system predicts the risk level of Premature Coronary Artery Disease (PCAD)
-            using patient biomarkers and clinical data. It leverages a trained machine learning
-            model to classify patients into <b>Low</b>, <b>Medium</b>, or <b>High</b> risk categories.
-            </p>
-        </div>
-    """, unsafe_allow_html=True)
+            This platform is an AI-driven predictive system designed to evaluate a patient's risk of developing 
+            Premature Coronary Artery Disease (PCAD). By leveraging advanced machine learning algorithms, the system 
+            aims to support healthcare providers in early detection and proactive patient care.
+            </p><br>
+            <p><b>Key Capabilities:</b></p>
+        <ul>
+            <li><b>Intelligent Risk Stratification:</b> Automatically classifies patients into <b>Low</b>, <b>Medium</b>, or <b>High</b> risk categories based on their clinical data.</li>
+            <li><b>Biomarker Analysis:</b> Evaluates critical blood markers including CRP, IL-6, VCAM-1, and Glutathione, to detect biological early warning signs of cardiovascular deterioration.</li>
+            <li><b>Clinical Decision Support:</b> Empowers doctors with accurate, data-driven insights to customize preventive treatments and lifestyle interventions before the disease progresses.</li>
+            <li><b>Transparent AI:</b> Utilizes Explainable AI (XAI) to not only predict the risk but also show <i>why</i> the decision was made, highlighting which specific biomarkers contributed most to the patient's result.</li>
+        </ul>
+    </div>
+""", unsafe_allow_html=True)
 
     col_a, col_b = st.columns(2)
     with col_a:
         st.markdown("""
             <div class="info-card">
-                <h4>🧪 Key Biomarkers Assessed</h4>
+                <h4> Key Biomarkers Assessed</h4>
                 <p>
                 <b>CRP</b> — C-Reactive Protein (inflammation marker)<br>
                 <b>IL-6</b> — Interleukin-6 (cytokine inflammatory marker)<br>
@@ -346,13 +393,13 @@ if st.session_state.page == 'main_menu':
     with col_b:
         st.markdown("""
             <div class="info-card">
-                <h4>📊 Risk Classification</h4>
+                <h4> Risk Classification</h4>
                 <p>
-                    <span style="color:#28a745; font-weight:700;">● LOW RISK</span><br>
+                    <span style="color:#2e7d32; font-weight:700;">● LOW RISK</span><br>
                     Biomarkers within healthy range.<br>
-                    <span style="color:#ffa500; font-weight:700;">● MEDIUM RISK</span><br>
+                    <span style="color:#8c661f; font-weight:700;">● MEDIUM RISK</span><br>
                     Some biomarkers are elevated and may require monitoring.<br>
-                    <span style="color:#ff4b4b; font-weight:700;">● HIGH RISK</span><br>
+                    <span style="color:#cf2c27; font-weight:700;">● HIGH RISK</span><br>
                     Multiple biomarkers are elevated, indicating a higher likelihood of PCAD.
                 </p>
             </div>
@@ -364,8 +411,8 @@ if st.session_state.page == 'main_menu':
     # ══════════════════════════════════════════
     # SECTION 2: DATA EXPLORATION
     # ══════════════════════════════════════════
-    st.markdown("## 📊 Data Exploration")
-    st.markdown("Biomarker distributions from the patient dataset.")
+    st.markdown("## Data Exploration")
+    st.markdown("The visualization below displays a comparison of the distribution of four key biomarkers for patients who are PCAD-negative (Green) and PCAD-positive (Red). Overall, the system indicates a very clear line of separation between these two groups. For inflammatory markers (CRP & IL-6) and endothelial function (VCAM-1), elevated readings are highly synonymous with PCAD risk. Conversely, for antioxidant markers such as Glutathione, a decrease in readings indicates a high-risk patient profile.")
     st.markdown("<br>", unsafe_allow_html=True)
 
     import os
@@ -379,7 +426,7 @@ if st.session_state.page == 'main_menu':
     dashboard_df = None
     if os.path.exists(DEFAULT_DATA_PATH):
         dashboard_df = load_dashboard_data(DEFAULT_DATA_PATH)
-        st.caption(f"📁 Data loaded from `data/patients.csv` — {len(dashboard_df)} records")
+        st.caption(f"Data loaded from `data/patients.csv` — {len(dashboard_df)} records")
     else:
         st.warning("⚠️ No patient data file found. Please ensure `patients.csv` is placed in the `data/` folder in the same directory as `app.py`.")
 
@@ -395,11 +442,12 @@ if st.session_state.page == 'main_menu':
             st.markdown("**Distribution of Key Biomarkers**")
 
             row1_cols = st.columns(2)
+            
             biomarker_colors = {
-                "CRP":         "#e74c3c",
-                "IL_6":        "#3498db",
-                "VCAM_1":      "#2ecc71",
-                "Glutathione": "#f39c12",
+                "CRP":         "#c53a41", # Primary Container
+                "IL_6":        "#91605f", # Secondary Container
+                "VCAM_1":      "#8c661f", # Tertiary Container
+                "Glutathione": "#cf2c27", # Error Container
             }
             biomarker_labels = {
                 "CRP":         "CRP (mg/L)",
@@ -413,15 +461,19 @@ if st.session_state.page == 'main_menu':
                 with col:
                     st.markdown(f"**{biomarker_labels.get(biomarker, biomarker)} Distribution**")
                     fig, ax = plt.subplots(figsize=(5, 3.5))
+                    
+                    
+                    fig.patch.set_facecolor('#fff8f7') 
+                    ax.set_facecolor('#fff8f7')
 
                     if "PCAD_Label" in df.columns:
-                        for label, color in [("Negative", "#28a745"), ("Positive", "#ff4b4b")]:
+                        for label, color in [("Negative", "#8c661f"), ("Positive", "#cf2c27")]:
                             subset = df[df["PCAD_Label"] == label][biomarker].dropna()
-                            ax.hist(subset, bins=15, alpha=0.6, label=label, color=color, edgecolor='white')
+                            ax.hist(subset, bins=15, alpha=0.7, label=label, color=color, edgecolor='white')
                         ax.legend(title="PCAD Status", fontsize=8)
                     else:
                         ax.hist(df[biomarker].dropna(), bins=15,
-                                color=biomarker_colors.get(biomarker, "#4b8bff"), edgecolor='white')
+                                color=biomarker_colors.get(biomarker, "#c53a41"), edgecolor='white')
 
                     ax.set_xlabel(biomarker_labels.get(biomarker, biomarker), fontsize=9)
                     ax.set_ylabel("Number of Patients", fontsize=9)
@@ -453,8 +505,8 @@ if st.session_state.page == 'main_menu':
     # ══════════════════════════════════════════
     # SECTION 3: MODEL PERFORMANCE
     # ══════════════════════════════════════════
-    st.markdown("## ⚙️ Model Performance")
-    st.markdown("Evaluation metrics of the trained PCAD risk classification model for High Risk.")
+    st.markdown("## Model Performance")
+    st.markdown("Below are the evaluation metrics for the 3-class PCAD risk classification model, which integrates K-Means Clustering for profile grouping and a Random Forest classifier for risk prediction. It details the model's overall accuracy as well as the weighted averages for precision, recall, and F1-scores.")
     st.markdown("<br>", unsafe_allow_html=True)
 
     model_metrics = {
@@ -464,20 +516,19 @@ if st.session_state.page == 'main_menu':
         "F1 Score":  0.95,
     }
 
-    metric_colors = ["#28a745", "#3498db", "#e74c3c", "#f39c12"]
-    metric_icons  = ["✅", "🎯", "🔍", "⚖️"]
+    # MD3 Theme colors mapped to the metrics
+    metric_colors = ["#2e7d32", "#8c661f", "#c53a41", "#cf2c27"]
     metric_names  = list(model_metrics.keys())
     metric_values = list(model_metrics.values())
 
     perf_cols = st.columns(4)
-    for col, name, value, color, icon in zip(perf_cols, metric_names, metric_values,
-                                              metric_colors, metric_icons):
+    for col, name, value, color in zip(perf_cols, metric_names, metric_values, metric_colors):
         with col:
             st.markdown(f"""
-                <div class="dash-metric-card" style="border-top: 4px solid {color};">
-                    <div class="dash-metric-icon">{icon}</div>
-                    <div class="dash-metric-value" style="color:{color};">{value*100:.1f}%</div>
-                    <div class="dash-metric-label">{name}</div>
+                <div class="dash-metric-card" style="border-top: 4px solid {color}; padding: 24px 20px;">
+                    <div style="font-size: 34px; font-weight: 800; color:{color}; line-height: 1.1;">{value*100:.1f}%</div>
+                    <div style="font-size: 13px; color: var(--md-sys-color-on-surface-variant); margin-top: 6px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">{name}</div>
+                    
                 </div>
             """, unsafe_allow_html=True)
 
@@ -486,10 +537,10 @@ if st.session_state.page == 'main_menu':
         <div class="info-card">
             <h4>📖 Metric Definitions</h4>
             <p>
-            <b>Accuracy</b> — Overall proportion of correct predictions (TP + TN) / Total.<br>
-            <b>Precision</b> — Of all patients predicted PCAD Positive, how many truly are? Minimises false alarms.<br>
-            <b>Recall (Sensitivity)</b> — Of all true PCAD Positive patients, how many did the model catch? Minimises missed cases.<br>
-            <b>F1 Score</b> — Harmonic mean of Precision and Recall; balanced metric for imbalanced classes.
+            <b>Accuracy</b> — The overall proportion of correct predictions across all three risk classes (Low, Medium, High) out of the total patients.<br>
+            <b>Precision</b> — Calculates the precision for each risk class (e.g., of all patients predicted as 'High Risk', how many truly are?), then averages them based on the actual number of patients in each class. Minimises false alarms across all risk levels.<br>
+            <b>Recall (Sensitivity)</b> — Calculates the recall for each risk class (e.g., of all true 'High Risk' patients, how many did the model successfully catch?), then averages them based on the actual number of patients in each class. Minimises missed cases.<br>
+            <b>F1 Score</b> — The weighted average of the F1-scores from all three classes. It serves as a single balanced metric that accounts for both precision and recall, especially useful if the number of patients in each risk class is slightly imbalanced.
             </p>
         </div>
     """, unsafe_allow_html=True)
@@ -507,12 +558,13 @@ elif st.session_state.page == 'form':
             width: 100% !important;
             padding: 0 !important;
             background: transparent !important;
+            border: none !important;
             border-radius: 0 !important;
         }
         </style>
     """, unsafe_allow_html=True)
 
-    st.markdown("## 🫀 Predict PCAD — Patient Data Entry")
+    st.markdown("## Predict PCAD — Patient Data Entry")
     st.write("Enter the patient's clinical data below to generate a risk classification.")
 
     DB_CONFIG = {
@@ -607,18 +659,18 @@ elif st.session_state.page == 'form':
 
         col1, col2 = st.columns(2)
         with col1:
-            age       = st.number_input("Age", min_value=1, max_value=120)
-            bmi       = st.number_input("BMI", min_value=10.0, max_value=50.0)
+            age       = st.number_input("Age", min_value=1, max_value=120, value = 38)
+            bmi       = st.number_input("BMI", min_value=10.0, max_value=50.0, value = 29.8)
             gender    = st.selectbox("Gender", options=[1, 0], format_func=lambda x: "Male" if x == 1 else "Female")
             smoking   = st.selectbox("Smoking Status", options=[1, 0], format_func=lambda x: "Smoker" if x == 1 else "Non-Smoker")
-            crp       = st.number_input("CRP Level (mg/L)")
-            il6       = st.number_input("IL-6 Level (pg/mL)")
+            crp       = st.number_input("CRP Level (mg/L)", value = 3.5)
+            il6       = st.number_input("IL-6 Level (pg/mL)", value = 7.2)
         with col2:
-            vcam        = st.number_input("VCAM-1 Level (ng/mL)")
-            glutathione = st.number_input("Glutathione (mmol/L)")
-            lipid       = st.number_input("Lipid Profile")
-            renal       = st.number_input("Renal Profile")
-            liver       = st.number_input("Liver Profile")
+            vcam        = st.number_input("VCAM-1 Level (ng/mL)", value = 1050)
+            glutathione = st.number_input("Glutathione (mmol/L)", value = 5.4)
+            lipid       = st.number_input("Lipid Profile", value = 230)
+            renal       = st.number_input("Renal Profile", value = 1)
+            liver       = st.number_input("Liver Profile", value = 40)
 
         submit = st.form_submit_button("Predict Risk Level", use_container_width=True, type="primary")
 
@@ -638,13 +690,14 @@ elif st.session_state.page == 'form':
             st.warning(f"⚠️ Model files not found. Showing demo result. Error: `{load_error}`")
             prediction = 'High'
 
+        # Colors matched with MD3 hex equivalents
         res_map = {
-            'High':   {'label': 'HIGH RISK',   'color': '#ff4b4b', 'degree': '300deg', 'score': 85},
-            2:        {'label': 'HIGH RISK',   'color': '#ff4b4b', 'degree': '300deg', 'score': 85},
-            'Medium': {'label': 'MEDIUM RISK', 'color': '#ffa500', 'degree': '180deg', 'score': 50},
-            1:        {'label': 'MEDIUM RISK', 'color': '#ffa500', 'degree': '180deg', 'score': 50},
-            'Low':    {'label': 'LOW RISK',    'color': '#28a745', 'degree': '60deg',  'score': 15},
-            0:        {'label': 'LOW RISK',    'color': '#28a745', 'degree': '60deg',  'score': 15},
+            'High':   {'label': 'HIGH RISK',   'color': '#cf2c27', 'degree': '300deg', 'score': 85},
+            2:        {'label': 'HIGH RISK',   'color': '#cf2c27', 'degree': '300deg', 'score': 85},
+            'Medium': {'label': 'MEDIUM RISK', 'color': '#8c661f', 'degree': '180deg', 'score': 50},
+            1:        {'label': 'MEDIUM RISK', 'color': '#8c661f', 'degree': '180deg', 'score': 50},
+            'Low':    {'label': 'LOW RISK',    'color': '#2e7d32', 'degree': '60deg',  'score': 15},
+            0:        {'label': 'LOW RISK',    'color': '#2e7d32', 'degree': '60deg',  'score': 15},
         }
 
         st.session_state.patient_data = {
@@ -681,14 +734,14 @@ elif st.session_state.page == 'result':
     data = st.session_state.patient_data
     res  = st.session_state.risk_result
 
-    st.markdown("## ❤️ CAD Risk Assessment Results")
+    st.markdown("## PCAD Risk Assessment Results")
 
     if st.session_state.db_save_status is not None:
         status, msg = st.session_state.db_save_status
         if status == "success":
-            st.success(f"✅ Patient record saved to database. {msg}")
+            st.success(f"Patient record saved to database. {msg}")
         else:
-            st.error(f"❌ Failed to save to database: {msg}")
+            st.error(f"Failed to save to database: {msg}")
         st.session_state.db_save_status = None
 
     st.markdown("<br>", unsafe_allow_html=True)
@@ -712,7 +765,7 @@ elif st.session_state.page == 'result':
 
         st.markdown(f"""
             <div class="risk-card">
-                <div style="font-weight:600; color:#555;">PREMATURE CAD RISK</div>
+                <div style="font-weight:600; color:var(--md-sys-color-on-surface-variant);">PREMATURE CAD RISK</div>
                 <div class="donut-outer" style="--risk-color: {res['color']}; --risk-degree: {res['degree']};">
                     <div class="donut-inner">
                         <div class="risk-score-text" style="color: {res['color']}; font-size: 22px; line-height: 1.2;">{label_line1}</div>
@@ -723,7 +776,7 @@ elif st.session_state.page == 'result':
         """, unsafe_allow_html=True)
 
     with right_col:
-        st.markdown('<h6>🕒 BIOMARKER ANALYSIS</h6>', unsafe_allow_html=True)
+        st.markdown('<h6>BIOMARKER ANALYSIS</h6>', unsafe_allow_html=True)
 
         def get_bio_html(label, value, unit, threshold, is_reverse=False):
             is_bad = (value < threshold) if is_reverse else (value > threshold)
@@ -742,7 +795,7 @@ elif st.session_state.page == 'result':
             return f"""
                 <div class="bio-card">
                     <div class="bio-title">{label}</div>
-                    <div class="bio-value">{value} <span style="font-size:12px; color:#888;">{unit}</span></div>
+                    <div class="bio-value">{value} <span style="font-size:12px; color:var(--md-sys-color-on-surface-variant);">{unit}</span></div>
                     <div class="bio-desc">{desc}</div>
                     <div class="{status_class}">{status_text}</div>
                 </div>
@@ -772,7 +825,7 @@ elif st.session_state.page == 'result':
     st.markdown("---")
     
     # ── SHAP ANALYSIS SECTION ─────────────────────────────────────────────────
-    st.markdown("### 🔍 AI Explanation — Why This Risk Level?")
+    st.markdown("### AI Explanation — Why This Risk Level?")
     st.markdown("SHAP (SHapley Additive exPlanations) shows **which features pushed the prediction** toward or away from the predicted risk class.")
 
     if not SHAP_AVAILABLE:
@@ -849,14 +902,15 @@ elif st.session_state.page == 'result':
                         idx_top     = sorted_idx[:top_n][::-1]
                         feat_labels = [f"{feature_names[i]}  =  {raw_vals[i]:.2f}" for i in idx_top]
                         values      = sv[idx_top]
-                        colors      = ['#ff4b4b' if v > 0 else '#4b8bff' for v in values]
+                        # Use MD3 Hex codes
+                        colors      = ['#c53a41' if v > 0 else '#91605f' for v in values]
 
                         # centre chart using columns: padding | chart | padding
                         _, chart_col, _ = st.columns([0.5, 9, 0.5])
                         with chart_col:
                             fig_wf, ax_wf = plt.subplots(figsize=(7, 3.5))
-                            fig_wf.patch.set_facecolor('#fafafa')
-                            ax_wf.set_facecolor('#fafafa')
+                            fig_wf.patch.set_facecolor('#fff8f7')
+                            ax_wf.set_facecolor('#fff8f7')
 
                             bars = ax_wf.barh(range(len(values)), values,
                                               color=colors, edgecolor='white', height=0.55)
@@ -875,8 +929,8 @@ elif st.session_state.page == 'result':
                                 ax_wf.text(val + offset, bar.get_y() + bar.get_height() / 2,
                                            f"{val:+.3f}", va='center', ha=ha, fontsize=7)
 
-                            red_patch  = mpatches.Patch(color='#ff4b4b', label='Increases risk')
-                            blue_patch = mpatches.Patch(color='#4b8bff', label='Decreases risk')
+                            red_patch  = mpatches.Patch(color='#c53a41', label='Increases risk')
+                            blue_patch = mpatches.Patch(color='#91605f', label='Decreases risk')
                             ax_wf.legend(handles=[red_patch, blue_patch],
                                          loc='lower right', fontsize=8, framealpha=0.7)
                             fig_wf.tight_layout(pad=1.5)
@@ -895,8 +949,8 @@ elif st.session_state.page == 'result':
                         _, chart_col2, _ = st.columns([0.5, 9, 0.5])
                         with chart_col2:
                             fig_bar, ax_bar = plt.subplots(figsize=(7, 3.5))
-                            fig_bar.patch.set_facecolor('#fafafa')
-                            ax_bar.set_facecolor('#fafafa')
+                            fig_bar.patch.set_facecolor('#fff8f7')
+                            ax_bar.set_facecolor('#fff8f7')
 
                             bar_colors = plt.cm.RdYlGn_r(np.linspace(0.2, 0.8, len(vals_bar)))
                             ax_bar.barh(range(len(vals_bar)), vals_bar,
@@ -930,9 +984,9 @@ elif st.session_state.page == 'result':
                         }).sort_values('|Impact|', ascending=False).reset_index(drop=True)
 
                         def highlight_direction(val):
-                            if '⬆' in str(val): return 'color: #c0392b; font-weight: 600'
-                            if '⬇' in str(val): return 'color: #27ae60; font-weight: 600'
-                            if '—' in str(val):  return 'color: #888888; font-weight: 600'
+                            if '⬆' in str(val): return 'color: #cf2c27; font-weight: 600'
+                            if '⬇' in str(val): return 'color: #91605f; font-weight: 600'
+                            if '—' in str(val): return 'color: #888888; font-weight: 600'
                             return ''
 
                         # centre table with columns
@@ -942,7 +996,7 @@ elif st.session_state.page == 'result':
                             st.dataframe(styled_shap, use_container_width=True, hide_index=True, height=420)
 
                             csv_shap = shap_df.to_csv(index=False).encode('utf-8')
-                            st.download_button("⬇️ Download SHAP Table", csv_shap,
+                            st.download_button("Download SHAP Table", csv_shap,
                                                "shap_analysis.csv", "text/csv")
 
             except Exception as e:
@@ -953,7 +1007,7 @@ elif st.session_state.page == 'result':
 # PAGE: PATIENT DATA LIST (MySQL)
 # ─────────────────────────────────────────────
 elif st.session_state.page == 'patient_list':
-    st.markdown("## 🗃️ Patient Data List")
+    st.markdown("## Patient Data List")
     st.markdown("Patient records loaded from the MySQL database.")
 
     DB_CONFIG = {
@@ -1044,16 +1098,16 @@ elif st.session_state.page == 'patient_list':
             st.info("Run `pip install mysql-connector-python` and restart the app.")
 
     with col_refresh:
-        if st.button("🔄 Refresh", use_container_width=True):
+        if st.button("Refresh", use_container_width=True):
             st.cache_data.clear()
             st.rerun()
 
     if "delete_status" in st.session_state and st.session_state.delete_status is not None:
         status, msg = st.session_state.delete_status
         if status == "success":
-            st.success(f"✅ {msg}")
+            st.success(f"{msg}")
         else:
-            st.error(f"❌ Failed to delete: {msg}")
+            st.error(f"Failed to delete: {msg}")
         st.session_state.delete_status = None
 
     st.markdown("<br>", unsafe_allow_html=True)
@@ -1094,15 +1148,16 @@ elif st.session_state.page == 'patient_list':
 
                 def colour_risk(val):
                     val_upper = str(val).upper()
-                    if "HIGH"   in val_upper: return "background-color:#ffe0e0; color:#c0392b; font-weight:600"
-                    if "MEDIUM" in val_upper: return "background-color:#fff3e0; color:#e67e22; font-weight:600"
-                    if "LOW"    in val_upper: return "background-color:#e8f8f0; color:#27ae60; font-weight:600"
+                    # Updated highlight colors aligned to Theme colors
+                    if "HIGH"   in val_upper: return "background-color:#ffebe9; color:#cf2c27; font-weight:600"
+                    if "MEDIUM" in val_upper: return "background-color:#fff6e3; color:#8c661f; font-weight:600"
+                    if "LOW"    in val_upper: return "background-color:#e8f8f0; color:#2e7d32; font-weight:600"
                     return ""
 
                 def colour_status(val):
                     val_upper = str(val).upper()
-                    if val_upper in ("HIGH", "LOW"): return "color:#c0392b; font-weight:600"
-                    if val_upper == "NORMAL":        return "color:#27ae60; font-weight:600"
+                    if val_upper in ("HIGH", "LOW"): return "color:#cf2c27; font-weight:600"
+                    if val_upper == "NORMAL":        return "color:#2e7d32; font-weight:600"
                     return ""
 
                 status_cols = [c for c in ["CRP Status", "VCAM-1 Status", "IL-6 Status", "Glutathione Status"]
@@ -1117,14 +1172,14 @@ elif st.session_state.page == 'patient_list':
 
                 csv_data = display_df.to_csv(index=False).encode("utf-8")
                 st.download_button(
-                    label="⬇️ Download as CSV",
+                    label="Download as CSV",
                     data=csv_data,
                     file_name="pcad_patients.csv",
                     mime="text/csv",
                 )
 
                 st.markdown("<br>", unsafe_allow_html=True)
-                st.markdown("#### 🗑️ Delete a Record")
+                st.markdown("####  Delete a Record")
                 st.caption("Select a patient record below to permanently remove it from the database.")
 
                 filtered = filtered.reset_index(drop=True)
@@ -1139,7 +1194,7 @@ elif st.session_state.page == 'patient_list':
                         selected_option = st.selectbox("Select record to delete", options, key="delete_select")
                     with del_col2:
                         st.markdown("<br>", unsafe_allow_html=True)
-                        confirm_delete = st.button("🗑️ Delete", type="primary", use_container_width=True)
+                        confirm_delete = st.button("Delete", type="primary", use_container_width=True)
 
                     if confirm_delete:
                         selected_idx = options.index(selected_option)
